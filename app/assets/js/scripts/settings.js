@@ -1940,9 +1940,9 @@ const skinsWrapper = document.getElementById("skinsWrapper");
 
 async function initSkins() {
   skinsWrapper.innerHTML = "";
-  const officialSkins = fs.readdirSync(skinFolder).filter((file) => {
-    return file.endsWith(".png");
-  });
+  // const officialSkins = fs.readdirSync(skinFolder).filter((file) => {
+  //   return file.endsWith(".png");
+  // });
 
   const customSkinFolder = path.join(ConfigManager.getDataDirectory(), "skins");
   fs.mkdirSync(customSkinFolder, { recursive: true });
@@ -1957,11 +1957,11 @@ async function initSkins() {
   );
   skinsWrapper.appendChild(defaultDiv);
 
-  officialSkins
-    .map((file) => path.join(skinFolder, file))
-    .forEach((skinPath) => {
-      skinsWrapper.appendChild(createSkinCanvas(skinPath));
-    });
+  // officialSkins
+  //   .map((file) => path.join(skinFolder, file))
+  //   .forEach((skinPath) => {
+  //     skinsWrapper.appendChild(createSkinCanvas(skinPath));
+  //   });
 
   customSkins
     .map((file) => path.join(customSkinFolder, file))
