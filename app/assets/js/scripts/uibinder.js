@@ -524,14 +524,17 @@ ipcRenderer.on("distributionIndexDone", async (event, res) => {
 });
 
 function updateMusic(allowed, volume) {
+  const musicContainer = document.getElementById("musicInfo");
   const audioElement = document.getElementById("audio-player");
   if (audioElement) {
-    audioElement.volume = volume;
+    audioElement.volume = volume / 2;
     if (allowed) {
+      musicContainer.style.display = "flex";
       audioElement.play().catch((err) => {
         console.error("Erreur de lecture audio :", err);
       });
     } else {
+      musicContainer.style.display = "none";
       audioElement.pause();
     }
   }
@@ -608,6 +611,8 @@ function getRandomTrack() {
 
 // Joue une piste audio aléatoire
 function playRandomTrack(audioElement) {
+  const musicText = document.getElementById("musicText");
+  musicText.innerHTML = Lang.queryJS("music.loadingMusic");
   const trackPath = getRandomTrack();
   if (trackPath) {
     lastTrackPath = trackPath;
@@ -616,6 +621,7 @@ function playRandomTrack(audioElement) {
         console.error("Error reading file :", err);
         return;
       }
+      musicText.innerHTML = path.basename(trackPath).replace(/\..+$/, "");
       const base64 = data.toString("base64");
       audioElement.src = `data:audio/ogg;base64,${base64}`; //file://${trackPath}
       audioElement.play().catch((err) => {
