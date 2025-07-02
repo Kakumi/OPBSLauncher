@@ -273,6 +273,11 @@ addModsNotAllowed = "Vous n’êtes pas autorisé à ajouter des mods personnali
 [js.settings.serverListing]
 mainServer = "Serveur principal"
 
+[js.uicore.autoUpdate]
+checkingForUpdateButton = "Recherche des mises à jour..."
+installNowButton = "Installer maintenant"
+checkForUpdatesButton = "Chercher une mise à jour"
+
 [js.settings.java]
 selectedJava = "Sélectionné : Java {version} ({vendor})"
 invalidSelection = "Sélection invalide"
