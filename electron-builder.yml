@@ -1,5 +1,5 @@
 appId: "opbs"
-productName: "One Piece Blue Sea"
+productName: "One-Piece-Blue-Sea"
 artifactName: "${productName}-setup-${version}.${ext}"
 
 copyright: "Copyright © 2024-2025 Kakumi"
