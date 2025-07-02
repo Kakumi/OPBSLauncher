@@ -1945,6 +1945,7 @@ async function initSkins() {
   });
 
   const customSkinFolder = path.join(ConfigManager.getDataDirectory(), "skins");
+  fs.mkdirSync(customSkinFolder, { recursive: true });
   const customSkins = fs.existsSync(customSkinFolder)
     ? fs.readdirSync(customSkinFolder).filter((file) => {
         return file.endsWith(".png");
