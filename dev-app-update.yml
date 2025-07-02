@@ -1,3 +1,4 @@
 owner: Kakumi
 repo: OPBSLauncher
 provider: github
+releaseType: release
