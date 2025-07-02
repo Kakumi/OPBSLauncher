@@ -46,7 +46,11 @@ jobs:
         with:
           name: app-${{ runner.os }}
           path: |
-            dist/**/*
+            dist/**/*.exe
+            dist/**/*.dmg
+            dist/**/*.AppImage
+            dist/**/latest*.yml
+            dist/**/*.blockmap
 
   release:
     name: Create GitHub Release
