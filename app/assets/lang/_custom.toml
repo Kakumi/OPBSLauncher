@@ -4,11 +4,13 @@
 title = "One Piece : Blue Sea"
 
 [ejs.landing]
+mediaPathnotesURL = "https://opbluesea.fr/changelog"
 mediaGitHubURL = "https://github.com/Kakumi/OPBSLauncher"
-mediaXURL = "#"
-mediaInstagramURL = "#"
-mediaYouTubeURL = "#"
-mediaDiscordURL = "https://discord.gg/zNWUXdt"
+mediaXURL = "https://x.com/OnePieceBlueSea"
+mediaInstagramURL = "https://www.instagram.com/onepiecebluesea"
+mediaYouTubeURL = "https://www.youtube.com/@onepiecebluesea"
+mediaDiscordURL = "https://discord.gg/onepiecebluesea"
+mediaTikTokURL = "https://www.tiktok.com/@onepiecebluesea"
 
 [ejs.settings]
 sourceGithubLink = "https://github.com/Kakumi/OPBSLauncher"

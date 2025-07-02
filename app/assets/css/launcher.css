@@ -1471,6 +1471,18 @@ input:checked + .toggleSwitchSlider:before {
   height: 30px;
 }
 
+.settingsFileRedButton {
+  border: 0px;
+  border-radius: 0px 3px 3px 0px;
+  font-size: 12px;
+  padding: 0px 5px;
+  cursor: pointer;
+  background: rgba(255, 41, 41, 0.57);
+  transition: 0.25s ease;
+  white-space: nowrap;
+  outline: none;
+}
+
 /* File selection button. */
 .settingsFileSelButton {
   border: 0px;
@@ -1870,6 +1882,10 @@ input:checked + .toggleSwitchSlider:before {
   color: lightgrey;
   font-weight: bold;
   width: 89%;
+}
+
+#settingsShadersContainer {
+  padding-bottom: 25px;
 }
 
 /* Wrapper container. */
@@ -3171,6 +3187,16 @@ input:checked + .toggleSwitchSlider:before {
   fill: url("#instaFill");
 }
 
+/* Tiktok icon colors. */
+#tiktokSVG:hover,
+#tiktokURL:focus #tiktokSVG {
+  fill: #000;
+}
+
+#tiktokSVG:active {
+  fill: #000;
+}
+
 /* Youtube icon colors. */
 #youtubeSVG:hover,
 #youtubeURL:focus #youtubeSVG {
@@ -3958,7 +3984,7 @@ input:checked + .toggleSwitchSlider:before {
 /* Stationary image for the spinner. */
 #loadCenterImage {
   position: absolute;
-  width: 277px;
+  width: 150px;
   height: auto;
 }
 
@@ -3996,7 +4022,7 @@ input:checked + .toggleSwitchSlider:before {
 #skinsWrapper {
   display: flex;
   justify-content: start;
-  align-items: center;
+  align-items: start;
   flex-wrap: wrap;
   padding-top: 10px;
   gap: 5px;
@@ -4016,4 +4042,51 @@ input:checked + .toggleSwitchSlider:before {
   justify-content: space-between;
   border-bottom: 1px solid rgba(255, 255, 255, 0.5);
   padding-bottom: 20px;
+}
+
+/* Icone appli*/
+#appIconContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+/* Stationary image for the spinner. */
+#appIconCenterImage {
+  width: 50%;
+  height: auto;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
+  animation: logoBreathing 4s ease-in-out infinite;
+}
+
+@keyframes logoBreathing {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+#musicInfo {
+  position: absolute;
+  top: 0;
+  left: 0;
+  margin: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+#musicIcon {
+  width: 25px;
+  animation: logoBreathing 4s ease-in-out infinite;
+}
+
+#musicText {
+  font-size: 14px;
 }

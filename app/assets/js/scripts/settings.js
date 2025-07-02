@@ -1879,7 +1879,7 @@ window.fetch = async (...args) => {
  * @param {File|Blob} pngImage The PNG image file or blob.
  * @returns {Promise<Response>} The fetch response.
  */
-async function uploadSkin(pngImage) {
+async function uploadSkin(pngImage, save = true) {
   settingsSkinErrorMessage.style.color = "white";
   settingsSkinErrorMessage.innerHTML = Lang.queryJS(
     "settings.skins.uploadSkinLoading"
@@ -1915,6 +1915,24 @@ async function uploadSkin(pngImage) {
     settingsSkinErrorMessage.style.display = "block";
     skinUploadLogger.error(`Erreur lors de l'upload : ${response.statusText}`);
   }
+
+  if (save) {
+    const skinFolder = path.join(ConfigManager.getDataDirectory(), "skins");
+    if (!fs.existsSync(skinFolder)) {
+      fs.mkdirSync(skinFolder, { recursive: true });
+    }
+
+    const uniqueId = "skin-" + Date.now();
+    const filePath = path.join(skinFolder, uniqueId + ".png");
+    let buffer;
+    if (pngImage instanceof File || pngImage instanceof Blob) {
+      buffer = Buffer.from(await pngImage.arrayBuffer());
+    } else {
+      buffer = Buffer.from(pngImage);
+    }
+    fs.writeFileSync(filePath, buffer);
+    initSkins();
+  }
 }
 
 const skinFolder = path.join(__dirname, "assets", "images", "skins");
@@ -1922,17 +1940,32 @@ const skinsWrapper = document.getElementById("skinsWrapper");
 
 function initSkins() {
   skinsWrapper.innerHTML = "";
-  const skinPaths = fs.readdirSync(skinFolder).filter((file) => {
+  const officialSkins = fs.readdirSync(skinFolder).filter((file) => {
     return file.endsWith(".png");
   });
 
-  if (skinPaths.length === 0) {
+  const customSkinFolder = path.join(ConfigManager.getDataDirectory(), "skins");
+  const customSkins = fs.existsSync(customSkinFolder)
+    ? fs.readdirSync(customSkinFolder).filter((file) => {
+        return file.endsWith(".png");
+      })
+    : [];
+
+  const hasSkins = officialSkins.length > 0 || customSkins.length > 0;
+
+  if (!hasSkins) {
     skinsWrapper.innerHTML = Lang.queryJS("settings.skins.noSkinsFound");
   } else {
-    skinPaths
+    officialSkins
       .map((file) => path.join(skinFolder, file))
       .forEach((skinPath) => {
         skinsWrapper.appendChild(createSkinCanvas(skinPath));
+      });
+
+    customSkins
+      .map((file) => path.join(customSkinFolder, file))
+      .forEach((skinPath) => {
+        skinsWrapper.appendChild(createSkinCanvas(skinPath, 64, true));
       });
   }
 }
@@ -1950,7 +1983,7 @@ function createFileFromDisk(absolutePath, filename = "skin.png") {
   }
 }
 
-function createSkinCanvas(imageSrc, size = 64) {
+function createSkinCanvas(imageSrc, size = 64, canDelete = false) {
   const div = document.createElement("div");
   div.className = "skinHead";
   const canvas = document.createElement("canvas");
@@ -1980,9 +2013,20 @@ function createSkinCanvas(imageSrc, size = 64) {
   button.innerHTML = Lang.queryJS("settings.skins.selectSkin");
   button.onclick = async () => {
     const skin = await createFileFromDisk(imageSrc, "skin.png");
-    uploadSkin(skin);
+    uploadSkin(skin, false);
   };
   div.appendChild(button);
+
+  if (canDelete) {
+    const deleteButton = document.createElement("button");
+    deleteButton.className = "settingsFileRedButton";
+    deleteButton.innerHTML = Lang.queryJS("settings.skins.deleteSkin");
+    deleteButton.onclick = async () => {
+      fs.unlinkSync(imageSrc);
+      initSkins();
+    };
+    div.appendChild(deleteButton);
+  }
 
   return div;
 }

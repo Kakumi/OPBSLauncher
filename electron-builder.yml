@@ -1,6 +1,6 @@
 appId: "opbs"
-productName: "One-Piece-Blue-Sea"
-artifactName: "${productName}-setup-${version}.${ext}"
+productName: "One Piece - Blue Sea"
+artifactName: "One-Piece-Blue-Sea-setup-${version}.${ext}"
 
 copyright: "Copyright © 2024-2025 Kakumi"
 
@@ -15,6 +15,7 @@ extraResources:
 
 # Windows Configuration
 win:
+  icon: "build/icon.ico"
   target:
     - target: "nsis"
       arch: "x64"
@@ -33,7 +34,7 @@ mac:
       arch:
         - "x64"
         - "arm64"
-  artifactName: "${productName}-setup-${version}-${arch}.${ext}"
+  artifactName: "One-Piece-Blue-Sea-setup-${version}-${arch}.${ext}"
   category: "public.app-category.games"
 
 # Linux Configuration

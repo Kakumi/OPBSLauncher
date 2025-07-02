@@ -136,6 +136,10 @@ uploadSkinError = "An error occurred while uploading your skin. Please, retry so
 uploadSkinSuccess = "Your skin has been sent to the server !"
 noSkinsFound = "No skins found."
 selectSkin = "Choisir"
+deleteSkin = "Supprimer"
+
+[js.music]
+loadingMusic = "Loading music..."
 
 [ejs.waiting]
 waitingText = "Waiting for Microsoft.."
