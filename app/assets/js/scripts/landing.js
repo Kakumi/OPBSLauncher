@@ -1188,6 +1188,7 @@ async function downloadCustomMainMenuFiles() {
   const folder = path.join(resourceFolder, "opbluesea", "textures");
   const launcherFolder = path.join(resourceFolder, "launcher");
   fs.mkdirSync(folder, { recursive: true });
+  fs.mkdirSync(launcherFolder, { recursive: true });
   const filePath = path.join(folder, "skin.png");
   const url = `https://minotar.net/armor/bust/${user.uuid}/128.png`;
 

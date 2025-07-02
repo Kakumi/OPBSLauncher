@@ -1938,7 +1938,7 @@ async function uploadSkin(pngImage, save = true) {
 const skinFolder = path.join(__dirname, "assets", "images", "skins");
 const skinsWrapper = document.getElementById("skinsWrapper");
 
-function initSkins() {
+async function initSkins() {
   skinsWrapper.innerHTML = "";
   const officialSkins = fs.readdirSync(skinFolder).filter((file) => {
     return file.endsWith(".png");
@@ -1951,23 +1951,22 @@ function initSkins() {
       })
     : [];
 
-  const hasSkins = officialSkins.length > 0 || customSkins.length > 0;
+  const defaultDiv = await createMicrosoftSkin(
+    ConfigManager.getSelectedAccount()
+  );
+  skinsWrapper.appendChild(defaultDiv);
 
-  if (!hasSkins) {
-    skinsWrapper.innerHTML = Lang.queryJS("settings.skins.noSkinsFound");
-  } else {
-    officialSkins
-      .map((file) => path.join(skinFolder, file))
-      .forEach((skinPath) => {
-        skinsWrapper.appendChild(createSkinCanvas(skinPath));
-      });
+  officialSkins
+    .map((file) => path.join(skinFolder, file))
+    .forEach((skinPath) => {
+      skinsWrapper.appendChild(createSkinCanvas(skinPath));
+    });
 
-    customSkins
-      .map((file) => path.join(customSkinFolder, file))
-      .forEach((skinPath) => {
-        skinsWrapper.appendChild(createSkinCanvas(skinPath, 64, true));
-      });
-  }
+  customSkins
+    .map((file) => path.join(customSkinFolder, file))
+    .forEach((skinPath) => {
+      skinsWrapper.appendChild(createSkinCanvas(skinPath, 64, true));
+    });
 }
 
 initSkins();
@@ -2027,6 +2026,30 @@ function createSkinCanvas(imageSrc, size = 64, canDelete = false) {
     };
     div.appendChild(deleteButton);
   }
+
+  return div;
+}
+
+async function createMicrosoftSkin(user) {
+  const div = document.createElement("div");
+  div.className = "skinHead";
+  const img = document.createElement("img");
+  img.src = `https://mineskin.eu/helm/${user.displayName}/64`;
+
+  div.appendChild(img);
+
+  const button = document.createElement("button");
+  button.className = "settingsFileSelButton";
+  button.innerHTML = Lang.queryJS("settings.skins.selectSkin");
+  button.onclick = async () => {
+    const response = await fetch(
+      `https://mineskin.eu/skin/${user.displayName}`
+    );
+    const arrayBuffer = await response.arrayBuffer();
+    const skin = new File([arrayBuffer], "skin.png", { type: "image/png" });
+    uploadSkin(skin, false);
+  };
+  div.appendChild(button);
 
   return div;
 }
