@@ -547,7 +547,7 @@ function setupMusic() {
     playRandomTrack(audioElement);
 
     // Régler le volume de l'élément audio
-    audioElement.volume = ConfigManager.getMusicVolume();
+    audioElement.volume = ConfigManager.getMusicVolume() / 2;
     // Lecture suivante à la fin de la piste
     audioElement.addEventListener("ended", () => {
       playRandomTrack(audioElement);

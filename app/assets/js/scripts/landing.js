@@ -29,6 +29,7 @@ const { status } = require("minecraft-server-util");
 // Internal Requirements
 const DiscordWrapper = require("./assets/js/discordwrapper");
 const ProcessBuilder = require("./assets/js/processbuilder");
+const crypto = require("crypto");
 
 // Launch Elements
 const launch_content = document.getElementById("launch_content");
@@ -1240,5 +1241,118 @@ async function deleteCustomMods() {
         });
       });
     });
+  }
+}
+
+let fileHashes = {};
+
+function hashFile(filePath) {
+  return new Promise((resolve, reject) => {
+    const hash = crypto.createHash("md5");
+    const stream = fs.createReadStream(filePath);
+    stream.on("data", (data) => hash.update(data));
+    stream.on("end", () => resolve(hash.digest("hex")));
+    stream.on("error", reject);
+  });
+}
+
+async function analyzeFolderChanges() {
+  try {
+    const serv = (await DistroAPI.getDistribution()).getServerById(
+      ConfigManager.getSelectedServer()
+    );
+    const defaultResourcesPacks = serv.rawServer.modules.filter(
+      (m) =>
+        m.artifact.path != null && m.artifact.path.startsWith("resourcepacks/")
+    );
+    const folderToWatch = await getFolderToWatch(serv);
+    const files = fs.readdirSync(folderToWatch);
+    for (const file of files) {
+      const fullPath = path.join(folderToWatch, file);
+      const newHash = await hashFile(fullPath);
+      const artifactFromServer = defaultResourcesPacks.filter(
+        (m) => m.name === file
+      );
+      if (fileHashes[file] === undefined && artifactFromServer.length > 0) {
+        fileHashes[file] = newHash;
+      } else {
+        if (fileHashes[file] === undefined) {
+          await callSecurityWebhook(
+            "Ajout d'un fichier",
+            `Le fichier ${file} a été ajouté dans le dossier de ressources du serveur ${serv.rawServer.name}.`
+          );
+        } else if (
+          fileHashes[file] !== newHash &&
+          (artifactFromServer.length == 0 ||
+            artifactFromServer[0].artifact.MD5 !== newHash)
+        ) {
+          await callSecurityWebhook(
+            "Modification d'un fichier",
+            `Le fichier ${file} a été modifié dans le dossier de ressources du serveur ${serv.rawServer.name}.`
+          );
+        }
+
+        fileHashes[file] = newHash;
+      }
+    }
+
+    for (const file of Object.keys(fileHashes)) {
+      if (!fs.existsSync(path.join(folderToWatch, file))) {
+        await callSecurityWebhook(
+          "Suppression d'un fichier",
+          `Le fichier ${file} a été supprimé du dossier de ressources du serveur ${serv.rawServer.name}.`
+        );
+        delete fileHashes[file];
+      }
+    }
+  } catch (err) {
+    console.error("Error analyzing folder:", err);
+  }
+}
+
+async function getFolderToWatch(serv) {
+  return path.join(
+    ConfigManager.getInstanceDirectory(),
+    serv.rawServer.id,
+    "resourcepacks"
+  );
+}
+
+// Run every 10 seconds
+setInterval(analyzeFolderChanges, 10000);
+
+async function callSecurityWebhook(title, message) {
+  try {
+    const webhookUrl =
+      "https://discord.com/api/webhooks/1360368753854120156/91lDIFKriPO93EaitlUMdfTXn5RuM3r_5J3QW-W22AhX5NFNmrJpNxz2WRZXAWeM8hEe";
+    const user = ConfigManager.getSelectedAccount();
+    const embed = {
+      title: title,
+      description: message,
+      color: 0xff0000,
+      timestamp: new Date().toISOString(),
+      fields: [
+        {
+          name: "Utilisateur",
+          value: user?.displayName || "N/A",
+          inline: true,
+        },
+        {
+          name: "UUID",
+          value: user?.uuid || "N/A",
+          inline: true,
+        },
+      ],
+    };
+
+    await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ embeds: [embed] }),
+    });
+  } catch (ex) {
+    LoggerUtil.getLogger("SecurityWebhook").error(
+      `Can't call security webhook, ${ex.message}`
+    );
   }
 }

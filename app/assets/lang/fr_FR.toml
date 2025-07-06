@@ -148,9 +148,9 @@ continueButton = "CONTINUER"
 
 [js.discord]
 launcherDetails = "Dans le launcher 🌊"
-launcherState = "Serveur {server}"
+launcherState = "Sur le point d'amarrer les mers 🌊"
 gameDetails = "En jeu ({name}) 🌊"
-gameState = "Serveur {server}"
+gameState = "Vogue sur les mers... 🌊"
 
 [js.index]
 microsoftLoginTitle = "Connexion Microsoft"

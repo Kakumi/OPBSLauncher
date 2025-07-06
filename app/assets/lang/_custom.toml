@@ -4,7 +4,12 @@
 title = "One Piece : Blue Sea"
 
 [ejs.landing]
+mediaPathnotesTitle = "Patchnotes"
 mediaPathnotesURL = "https://opbluesea.fr/changelog"
+mediaWikiTitle = "Wiki"
+mediaWikiURL = "https://opbluesea.fr/wiki"
+mediaVoteTitle = "Vote"
+mediaVoteURL = "https://opbluesea.fr/vote"
 mediaGitHubURL = "https://github.com/Kakumi/OPBSLauncher"
 mediaXURL = "https://x.com/OnePieceBlueSea"
 mediaInstagramURL = "https://www.instagram.com/onepiecebluesea"
