@@ -31,11 +31,11 @@ exports.initRPC = function (
     buttons: [
       {
         label: "Mon Site Web",
-        url: "https://example.com",
+        url: "https://opbluesea.fr",
       },
       {
         label: "Rejoins mon serveur",
-        url: "https://discord.gg/tonserveur",
+        url: "https://discord.gg/onepiecebluesea",
       },
     ],
   };
@@ -62,18 +62,30 @@ exports.initRPC = function (
 
 exports.updateDetails = function (details) {
   activity.details = details;
-  client.setActivity(activity);
+  try {
+    client.setActivity(activity);
+  } catch (error) {
+    logger.error("Failed to update Discord activity details: " + error.message);
+  }
 };
 
 exports.updateState = function (state) {
   activity.state = state;
-  client.setActivity(activity);
+  try {
+    client.setActivity(activity);
+  } catch (error) {
+    logger.error("Failed to update Discord activity details: " + error.message);
+  }
 };
 
 exports.shutdownRPC = function () {
   if (!client) return;
-  client.clearActivity();
-  client.destroy();
-  client = null;
-  activity = null;
+  try {
+    client.clearActivity();
+    client.destroy();
+    client = null;
+    activity = null;
+  } catch (error) {
+    logger.error("Failed to shutdown RPC: " + error.message);
+  }
 };

@@ -3056,7 +3056,7 @@ input:checked + .toggleSwitchSlider:before {
 }
 
 /* Social media icon content container. */
-#mediaContent {
+.mediaContent {
   position: relative;
   display: flex;
   flex-direction: column;
@@ -3066,9 +3066,13 @@ input:checked + .toggleSwitchSlider:before {
   align-items: center;
 }
 
+#leftExternalMedia {
+  margin-top: 150px;
+}
+
 /* Social Media Icon division containers. */
 #internalMedia,
-#externalMedia {
+.externalMedia {
   display: flex;
   flex-direction: column;
 }
@@ -3135,7 +3139,7 @@ input:checked + .toggleSwitchSlider:before {
 }
 
 /* Settings tooltip styles. */
-#settingsTooltip {
+.mediaTooltip {
   visibility: hidden;
   opacity: 0;
   width: 75px;
@@ -3145,12 +3149,28 @@ input:checked + .toggleSwitchSlider:before {
   border-radius: 4px;
   position: absolute;
   z-index: 1;
-  right: 130%;
   font-size: 12px;
   line-height: 20px;
   transition: visibility 0s linear 0.25s, opacity 0.25s ease;
 }
-#settingsTooltip::after {
+#left .mediaTooltip {
+  left: 80%;
+}
+#right .mediaTooltip {
+  right: 130%;
+}
+#left .mediaTooltip::before {
+  content: " ";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  margin-top: -5px;
+  margin-left: -10px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: transparent rgba(0, 0, 0, 0.75) transparent transparent;
+}
+#right .mediaTooltip::after {
   content: " ";
   position: absolute;
   top: 50%;
@@ -3160,9 +3180,9 @@ input:checked + .toggleSwitchSlider:before {
   border-style: solid;
   border-color: transparent transparent transparent rgba(0, 0, 0, 0.75);
 }
-.mediaButton:hover #settingsTooltip,
-.mediaButton:focus #settingsTooltip,
-.mediaButton:active #settingsTooltip {
+.mediaButton:hover .mediaTooltip,
+.mediaButton:focus .mediaTooltip,
+.mediaButton:active .mediaTooltip {
   visibility: visible;
   opacity: 1;
   transition-delay: 0s;
