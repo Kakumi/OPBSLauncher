@@ -3066,8 +3066,19 @@ input:checked + .toggleSwitchSlider:before {
   align-items: center;
 }
 
-#leftExternalMedia {
-  margin-top: 150px;
+#left .mediaContent {
+  width: 100%;
+  height: 100%;
+}
+
+#left .externalMedia {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  width: 100%;
+  margin: auto 0;
+  gap: 15px;
+  margin-left: 20px;
 }
 
 /* Social Media Icon division containers. */
@@ -3153,8 +3164,12 @@ input:checked + .toggleSwitchSlider:before {
   line-height: 20px;
   transition: visibility 0s linear 0.25s, opacity 0.25s ease;
 }
+#left .mediaSVG {
+  height: 14px;
+  width: 35px;
+}
 #left .mediaTooltip {
-  left: 80%;
+  left: 50px;
 }
 #right .mediaTooltip {
   right: 130%;
