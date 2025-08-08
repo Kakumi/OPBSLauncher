@@ -178,6 +178,9 @@ function updateSelectedAccount(authUser) {
         authUser.displayName
       }?v=${Date.now()}')`;
       populateUploadSkinPreview(authUser);
+      (async () => {
+        await initSkins(authUser);
+      })();
     }
   }
 

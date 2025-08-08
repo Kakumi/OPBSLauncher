@@ -22,6 +22,6 @@ sourceGithubLink = "https://github.com/Kakumi/OPBSLauncher"
 supportLink = "https://github.com/Kakumi/OPBSLauncher/issues"
 
 [ejs.welcome]
-welcomeHeader = "WELCOME TO WESTEROSCRAFT"
-welcomeDescription = "Our mission is to recreate the universe imagined by author George RR Martin in his fantasy series, A Song of Ice and Fire.  Through the collaborative effort of thousands of community members, we have sought to create Westeros as accurately and precisely as possible within Minecraft.  The world we are creating is yours to explore.  Journey from Dorne to Castle Black, and if you aren’t afraid, beyond the Wall itself, but best not delay.  As the words of House Stark ominously warn: Winter is Coming."
-welcomeDescCTA = "You are just a few clicks away from Westeros."
+welcomeHeader = "Bienvenue sur One Piece : Blue Sea"
+welcomeDescription = "One Piece : Blue Sea est un serveur Minecraft RP qui se déroule dans l’univers du célèbre manga One Piece. Ici, votre aventure n’aura de limite que votre imagination. Découvrez la mer de South Blue, ses îles inédites, ses personnages uniques, ses quêtes et ses événements. Apprenez un métier, fondez votre entreprise ou incarnez un citoyen paisible. Rejoignez la Marine pour défendre les îles ou partez à l’aventure en pirate, créez votre équipage, construisez votre navire et partez en quête des trésors cachés de cette vaste mer."
+welcomeDescCTA = "Votre aventure commence ici."
