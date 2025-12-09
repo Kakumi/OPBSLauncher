@@ -73,15 +73,26 @@ button {
 
 /* Undraggable region on the top of the frame. */
 #frameResizableTop {
-  height: 2px;
+  /* height: 2px; */
   width: 100%;
   -webkit-app-region: no-drag;
+}
+
+button {
+  padding: 0;
+  border: 0;
+  -webkit-appearance: none;
+}
+
+button::-webkit-focus-inner {
+  padding: 0;
+  border: 0;
 }
 
 /* Flexbox to wrap the main frame content. */
 #frameMain {
   display: flex;
-  height: 20px;
+  height: 22px;
 }
 
 /* Undraggable region on the left and right of the frame. */
@@ -505,6 +516,7 @@ button {
   font-size: 12px;
   letter-spacing: 1px;
   font-weight: bold;
+  color: #22a8f4;
 }
 
 /* Container to organize login field elements. */

@@ -372,15 +372,6 @@ const msftLoginLogger = LoggerUtil.getLogger("Microsoft Login");
 const msftLogoutLogger = LoggerUtil.getLogger("Microsoft Logout");
 const skinUploadLogger = LoggerUtil.getLogger("Skin Uploader");
 
-// Bind the add mojang account button.
-document.getElementById("settingsAddMojangAccount").onclick = (e) => {
-  switchView(getCurrentView(), VIEWS.login, 500, 500, () => {
-    loginViewOnCancel = VIEWS.settings;
-    loginViewOnSuccess = VIEWS.settings;
-    loginCancelEnabled(true);
-  });
-};
-
 // Bind the add microsoft account button.
 document.getElementById("settingsAddMicrosoftAccount").onclick = (e) => {
   switchView(getCurrentView(), VIEWS.waiting, 500, 500, () => {
@@ -751,7 +742,6 @@ function populateAuthAccounts() {
   });
 
   settingsCurrentMicrosoftAccounts.innerHTML = microsoftAuthAccountStr;
-  settingsCurrentMojangAccounts.innerHTML = mojangAuthAccountStr;
 }
 
 /**
