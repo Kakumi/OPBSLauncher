@@ -6,6 +6,7 @@ const { app, BrowserWindow, ipcMain, Menu, shell } = require("electron");
 const autoUpdater = require("electron-updater").autoUpdater;
 const ejse = require("ejs-electron");
 const fs = require("fs");
+const { LoggerUtil } = require("helios-core");
 const isDev = require("./app/assets/js/isdev");
 const path = require("path");
 const semver = require("semver");
@@ -112,8 +113,42 @@ ipcMain.handle(SHELL_OPCODE.TRASH_ITEM, async (event, ...args) => {
 // https://electronjs.org/docs/tutorial/offscreen-rendering
 app.disableHardwareAcceleration();
 
-const REDIRECT_URI_PREFIX =
-  "https://login.microsoftonline.com/common/oauth2/nativeclient?";
+const msftAuthLogger = LoggerUtil.getLogger("MicrosoftAuthMain");
+const REDIRECT_URI =
+  "https://login.microsoftonline.com/common/oauth2/nativeclient";
+
+function getSafeMicrosoftNav(uri) {
+  try {
+    const parsedUrl = new URL(uri);
+    return {
+      origin: parsedUrl.origin,
+      pathname: parsedUrl.pathname,
+      hasQuery: parsedUrl.search.length > 0,
+      hasHash: parsedUrl.hash.length > 0,
+    };
+  } catch (error) {
+    return {
+      unparsable: true,
+      length: typeof uri === "string" ? uri.length : 0,
+    };
+  }
+}
+
+function getSafeMicrosoftQueryMeta(searchParams) {
+  const code = searchParams.get("code");
+  const error = searchParams.get("error");
+  const errorDescription = searchParams.get("error_description");
+
+  return {
+    keys: Array.from(searchParams.keys()).sort(),
+    hasCode: code != null,
+    codeLength: code != null ? code.length : 0,
+    hasError: error != null,
+    error,
+    errorDescriptionLength:
+      errorDescription != null ? errorDescription.length : 0,
+  };
+}
 
 // Microsoft Auth Login
 let msftAuthWindow;
@@ -133,6 +168,10 @@ ipcMain.on(MSFT_OPCODE.OPEN_LOGIN, (ipcEvent, ...arguments_) => {
   msftAuthSuccess = false;
   msftAuthViewSuccess = arguments_[0];
   msftAuthViewOnClose = arguments_[1];
+  msftAuthLogger.info("Opening Microsoft auth window.", {
+    viewOnSuccess: msftAuthViewSuccess,
+    viewOnClose: msftAuthViewOnClose,
+  });
   msftAuthWindow = new BrowserWindow({
     title: LangLoader.queryJS("index.microsoftLoginTitle"),
     backgroundColor: "#222222",
@@ -143,10 +182,16 @@ ipcMain.on(MSFT_OPCODE.OPEN_LOGIN, (ipcEvent, ...arguments_) => {
   });
 
   msftAuthWindow.on("closed", () => {
+    msftAuthLogger.info("Microsoft auth window closed.", {
+      success: msftAuthSuccess,
+    });
     msftAuthWindow = undefined;
   });
 
   msftAuthWindow.on("close", () => {
+    msftAuthLogger.info("Microsoft auth window closing.", {
+      success: msftAuthSuccess,
+    });
     if (!msftAuthSuccess) {
       ipcEvent.reply(
         MSFT_OPCODE.REPLY_LOGIN,
@@ -158,18 +203,18 @@ ipcMain.on(MSFT_OPCODE.OPEN_LOGIN, (ipcEvent, ...arguments_) => {
   });
 
   msftAuthWindow.webContents.on("did-navigate", (_, uri) => {
-    if (uri.startsWith(REDIRECT_URI_PREFIX)) {
-      let queries = uri
-        .substring(REDIRECT_URI_PREFIX.length)
-        .split("#", 1)
-        .toString()
-        .split("&");
-      let queryMap = {};
+    msftAuthLogger.info("Microsoft auth navigation.", getSafeMicrosoftNav(uri));
 
-      queries.forEach((query) => {
-        const [name, value] = query.split("=");
-        queryMap[name] = decodeURI(value);
-      });
+    if (uri.startsWith(REDIRECT_URI)) {
+      const parsedUrl = new URL(uri);
+      let queryMap = {};
+      const queryMeta = getSafeMicrosoftQueryMeta(parsedUrl.searchParams);
+
+      for (const [name, value] of parsedUrl.searchParams.entries()) {
+        queryMap[name] = value;
+      }
+
+      msftAuthLogger.info("Microsoft auth redirect received.", queryMeta);
 
       ipcEvent.reply(
         MSFT_OPCODE.REPLY_LOGIN,
@@ -184,9 +229,29 @@ ipcMain.on(MSFT_OPCODE.OPEN_LOGIN, (ipcEvent, ...arguments_) => {
     }
   });
 
+  msftAuthWindow.webContents.on(
+    "did-fail-load",
+    (_, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      msftAuthLogger.warn("Microsoft auth page failed to load.", {
+        errorCode,
+        errorDescription,
+        isMainFrame,
+        ...getSafeMicrosoftNav(validatedURL),
+      });
+    }
+  );
+
+  msftAuthLogger.info("Loading Microsoft authorize URL.", {
+    authorizeHost: "login.microsoftonline.com",
+    tenant: "consumers",
+    redirectHost: "login.microsoftonline.com",
+    redirectPath: "/common/oauth2/nativeclient",
+  });
   msftAuthWindow.removeMenu();
   msftAuthWindow.loadURL(
-    `https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?prompt=select_account&client_id=${AZURE_CLIENT_ID}&response_type=code&scope=XboxLive.signin%20offline_access&redirect_uri=https://login.microsoftonline.com/common/oauth2/nativeclient`
+    `https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize?prompt=select_account&client_id=${AZURE_CLIENT_ID}&response_type=code&scope=XboxLive.signin%20offline_access&redirect_uri=${encodeURIComponent(
+      REDIRECT_URI
+    )}`
   );
 });
 
