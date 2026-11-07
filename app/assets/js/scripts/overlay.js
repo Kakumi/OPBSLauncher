@@ -314,11 +314,8 @@ async function populateServerListings() {
   const servers = distro.servers;
   let htmlString = "";
   for (const serv of servers) {
-    const restricted = serv.rawServer.restricted;
-    if (
-      restricted.length > 0 &&
-      (user == null || !restricted.includes(user.uuid))
-    ) {
+    // Hide profiles meant for another OS or restricted to other accounts.
+    if (!ServerFilter.isServerAvailable(serv.rawServer, user)) {
       continue;
     }
 
@@ -369,9 +366,11 @@ function populateAccountListings() {
     htmlString += `<button class="accountListing" uuid="${accounts[i].uuid}" ${
       i === 0 ? "selected" : ""
     }>
-            <img src="https://opbluesea.fr/api/skin-api/avatars/face/${
+            <img src="${opbsAvatarUrl(
+              accounts[i]
+            )}" data-skin-fallback="https://mineskin.eu/helm/${
               accounts[i].displayName
-            }?v=${Date.now()}">
+            }/64">
             <div class="accountListingName">${accounts[i].displayName}</div>
         </button>`;
   }

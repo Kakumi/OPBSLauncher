@@ -692,7 +692,9 @@ function populateAuthAccounts() {
                   acc.displayName
                 }" src="https://opbluesea.fr/api/skin-api/avatars/combo/${
       acc.displayName
-    }?v=${Date.now()}">
+    }?v=${Date.now()}" data-skin-fallback="https://mineskin.eu/armor/body/${
+      acc.displayName
+    }/150">
             </div>
             <div class="settingsAuthAccountRight">
                 <div class="settingsAuthAccountDetails">
@@ -1881,13 +1883,38 @@ async function uploadSkin(pngImage, save = true) {
   }
 
   const formData = new FormData();
-  formData.append("uuid", user.uuid);
   formData.append("skin", pngImage);
 
-  const response = await axios.post(
-    "https://opbluesea.fr/api/skin-api/skins-launcher",
-    formData
-  );
+  let response;
+  // The website checks this Minecraft session token with Mojang to know whose skin
+  // to change, so a player can only change their own. Refresh it first if expired.
+  if (!(await AuthManager.validateSelected())) {
+    response = {
+      status: 401,
+      data: {
+        message:
+          "Session Minecraft expirée, déconnecte puis reconnecte ton compte.",
+      },
+    };
+  } else {
+    try {
+      response = await axios.post(
+        "https://opbluesea.fr/api/opbs-launcher/skin",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${
+              ConfigManager.getSelectedAccount().accessToken
+            }`,
+          },
+        }
+      );
+    } catch (err) {
+      // axios rejects on HTTP errors and network errors; without this the UI
+      // stayed stuck on "loading" with no error shown.
+      response = err.response ?? { status: 0, statusText: err.message };
+    }
+  }
 
   if (response.status == 200) {
     settingsSkinErrorMessage.innerHTML = Lang.queryJS(
@@ -1902,8 +1929,19 @@ async function uploadSkin(pngImage, save = true) {
     settingsSkinErrorMessage.innerHTML = Lang.queryJS(
       "settings.skins.uploadSkinError"
     );
+    // Reason sent by the website (expired session, no linked account, invalid
+    // PNG...), added as text so it cannot inject HTML.
+    const reason = response.data?.message;
+    if (reason) {
+      settingsSkinErrorMessage.appendChild(document.createElement("br"));
+      settingsSkinErrorMessage.appendChild(document.createTextNode(reason));
+    }
     settingsSkinErrorMessage.style.display = "block";
-    skinUploadLogger.error(`Erreur lors de l'upload : ${response.statusText}`);
+    skinUploadLogger.error(
+      `Erreur lors de l'upload : ${response.status} ${
+        reason ?? response.statusText ?? ""
+      }`
+    );
   }
 
   if (save) {

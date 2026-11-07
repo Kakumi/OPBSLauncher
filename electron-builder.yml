@@ -1,6 +1,9 @@
 appId: "opbs"
 productName: "One Piece - Blue Sea"
-artifactName: "One-Piece-Blue-Sea-setup-${version}.${ext}"
+# No version in file names, so that the permanent links
+# https://github.com/Kakumi/OPBSLauncher/releases/latest/download/<file>
+# used on opbluesea.fr always point to the newest release.
+artifactName: "One-Piece-Blue-Sea-setup.${ext}"
 
 copyright: "Copyright © 2024-2025 Kakumi"
 
@@ -28,13 +31,16 @@ nsis:
   allowToChangeInstallationDirectory: true
 
 # macOS Configuration
+# x64 only, on purpose: Minecraft 1.12.2 uses LWJGL 2 whose macOS natives are
+# x86_64-only. An arm64 launcher forces an arm64 Java (helios-core rejects x64
+# JVMs on arm Macs), which cannot load them. The x64 build runs under Rosetta 2
+# on Apple Silicon and downloads an x64 Java, which works.
 mac:
   target:
     - target: "dmg"
       arch:
         - "x64"
-        - "arm64"
-  artifactName: "One-Piece-Blue-Sea-setup-${version}-${arch}.${ext}"
+  artifactName: "One-Piece-Blue-Sea-setup-${arch}.${ext}"
   category: "public.app-category.games"
 
 # Linux Configuration

@@ -6,6 +6,7 @@ const path           = require('path')
 const ConfigManager  = require('./configmanager')
 const { DistroAPI }  = require('./distromanager')
 const LangLoader     = require('./langloader')
+const ServerFilter   = require('./serverfilter')
 const { LoggerUtil } = require('helios-core')
 // eslint-disable-next-line no-unused-vars
 const { HeliosDistribution } = require('helios-core/common')
@@ -32,10 +33,13 @@ LangLoader.setupLanguage()
 function onDistroLoad(data){
     if(data != null){
         
-        // Resolve the selected server if its value has yet to be set.
-        if(ConfigManager.getSelectedServer() == null || data.getServerById(ConfigManager.getSelectedServer()) == null){
+        // Resolve the selected server if it is unset, gone, or not available here
+        // (e.g. a Mac player still on the Windows profile, or a restricted profile
+        // after switching accounts).
+        const selected = ConfigManager.getSelectedServer() == null ? null : data.getServerById(ConfigManager.getSelectedServer())
+        if(selected == null || !ServerFilter.isServerAvailable(selected.rawServer, ConfigManager.getSelectedAccount())){
             logger.info('Determining default selected server..')
-            ConfigManager.setSelectedServer(data.getMainServer().rawServer.id)
+            ConfigManager.setSelectedServer(ServerFilter.pickDefaultServer(data, ConfigManager.getSelectedAccount()).rawServer.id)
             ConfigManager.save()
         }
     }

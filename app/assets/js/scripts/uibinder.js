@@ -10,6 +10,7 @@ const { Type } = require("helios-distribution-types");
 const AuthManager = require("./assets/js/authmanager");
 const ConfigManager = require("./assets/js/configmanager");
 const { DistroAPI } = require("./assets/js/distromanager");
+const ServerFilter = require("./assets/js/serverfilter");
 
 let rscShouldLoad = false;
 let fatalStartupError = false;

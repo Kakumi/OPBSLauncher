@@ -158,10 +158,12 @@ document.getElementById("avatarOverlay").onclick = async (e) => {
 };
 
 function populateUploadSkinPreview(user) {
-  document.getElementById("uploadSkinCurrentPreview").src =
-    `https://opbluesea.fr/api/skin-api/avatars/combo/${
-      user.displayName
-    }?v=${Date.now()}`;
+  const preview = document.getElementById("uploadSkinCurrentPreview");
+  // Used by the error handler in uicore.js if the OPBS skin API is unavailable.
+  preview.dataset.skinFallback = `https://mineskin.eu/armor/body/${user.displayName}/150`;
+  preview.src = `https://opbluesea.fr/api/skin-api/avatars/combo/${
+    user.displayName
+  }?v=${Date.now()}`;
 }
 
 // Bind selected account
@@ -172,10 +174,13 @@ function updateSelectedAccount(authUser) {
       username = authUser.displayName;
     }
     if (authUser.uuid != null) {
+      // Layers, top first: the profile picture from the website (custom avatar,
+      // else OPBS skin face, else Microsoft skin face), then the Microsoft skin
+      // from mineskin.eu. A layer that fails to load is not drawn, so the next shows.
       document.getElementById("avatarContainer").style.backgroundImage =
-        `url('https://opbluesea.fr/api/skin-api/avatars/face/${
+        `url('${opbsAvatarUrl(authUser)}'), url('https://mineskin.eu/helm/${
           authUser.displayName
-        }?v=${Date.now()}')`;
+        }/100')`;
       populateUploadSkinPreview(authUser);
       (async () => {
         await initSkins(authUser);

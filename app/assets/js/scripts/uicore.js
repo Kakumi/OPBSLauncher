@@ -45,6 +45,39 @@ remote.getCurrentWebContents().on("devtools-opened", () => {
 webFrame.setZoomLevel(0);
 webFrame.setVisualZoomLevelLimits(1, 1);
 
+/**
+ * Profile picture of an account, served by the "opbs-launcher" plugin of the
+ * website: the avatar uploaded on opbluesea.fr, else the face of the OPBS skin,
+ * else the face of the Microsoft skin.
+ *
+ * @param {Object} account An account from ConfigManager (uuid, displayName).
+ * @returns {string}
+ */
+function opbsAvatarUrl(account) {
+  return `https://opbluesea.fr/api/opbs-launcher/avatar/${
+    account.uuid
+  }?v=${Date.now()}`;
+}
+
+// Skin images come from the Azuriom "Skin API" plugin on opbluesea.fr, which may be
+// unavailable. Images tagged with data-skin-fallback switch to that URL on error
+// (the player's Microsoft skin from mineskin.eu) instead of showing broken.
+// Inline onerror handlers are blocked by the CSP, hence this capture-phase listener.
+document.addEventListener(
+  "error",
+  (e) => {
+    const img = e.target;
+    if (
+      img instanceof HTMLImageElement &&
+      img.dataset.skinFallback &&
+      img.src !== img.dataset.skinFallback
+    ) {
+      img.src = img.dataset.skinFallback;
+    }
+  },
+  true
+);
+
 // Initialize auto updates in production environments.
 let updateCheckListener;
 if (!isDev) {
@@ -61,11 +94,11 @@ if (!isDev) {
         loggerAutoUpdater.info("New update available", info.version);
 
         if (process.platform === "darwin") {
-          info.darwindownload = `https://github.com/Kakumi/OPBSLauncher/releases/download/v${
-            info.version
-          }/One.Piece.Blue.Sea-setup-${info.version}${
-            process.arch === "arm64" ? "-arm64" : "-x64"
-          }.dmg`;
+          // Must match mac.artifactName in electron-builder.yml
+          // ("One-Piece-Blue-Sea-setup-${arch}.${ext}"). Only x64 is built for
+          // macOS (see electron-builder.yml), so arm64 installs are also sent to
+          // the x64 build, which runs under Rosetta.
+          info.darwindownload = `https://github.com/Kakumi/OPBSLauncher/releases/download/v${info.version}/One-Piece-Blue-Sea-setup-x64.dmg`;
           showUpdateUI(info);
         }
 
