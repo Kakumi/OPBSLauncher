@@ -42,6 +42,11 @@ function initAutoUpdater(event, data) {
   autoUpdater.on("update-available", (info) => {
     event.sender.send("autoUpdateNotification", "update-available", info);
   });
+  autoUpdater.on("download-progress", (progress) => {
+    event.sender.send("autoUpdateNotification", "download-progress", {
+      percent: progress.percent,
+    });
+  });
   autoUpdater.on("update-downloaded", (info) => {
     event.sender.send("autoUpdateNotification", "update-downloaded", info);
   });
@@ -82,7 +87,13 @@ ipcMain.on("autoUpdateAction", (event, arg, data) => {
       }
       break;
     case "installUpdateNow":
-      autoUpdater.quitAndInstall();
+      // Windows: silent install then restart the launcher (NSIS per-user install,
+      // no admin rights needed). Other platforms keep the default behaviour.
+      if (process.platform === "win32") {
+        autoUpdater.quitAndInstall(true, true);
+      } else {
+        autoUpdater.quitAndInstall();
+      }
       break;
     default:
       console.log("Unknown argument", arg);

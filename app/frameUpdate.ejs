@@ -1,0 +1,14 @@
+<%# Launcher update banner, centered in the title bar. Hidden until an update is
+    found; driven by setUpdateState() in uicore.js. States (data-state):
+    downloading (Windows/Linux, with progress), ready (installed on restart),
+    available (macOS: manual download of the .dmg). %>
+<div id="updateBanner" style="display: none">
+    <svg id="updateBannerIcon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 3v12"></path>
+        <path d="M7 10l5 5 5-5"></path>
+        <path d="M5 20h14"></path>
+    </svg>
+    <span id="updateBannerText"></span>
+    <span id="updateBannerProgress"><span id="updateBannerProgressFill"></span></span>
+    <button id="updateBannerButton" tabIndex="-1"></button>
+</div>

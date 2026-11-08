@@ -4,7 +4,7 @@
 title = "One Piece : Blue Sea"
 
 [ejs.landing]
-mediaPathnotesTitle = "Patchnotes"
+mediaPathnotesTitle = "Patchnote"
 mediaPathnotesURL = "https://opbluesea.fr/changelog"
 mediaWikiTitle = "Wiki"
 mediaWikiURL = "https://opbluesea.fr/wiki"
@@ -23,5 +23,5 @@ supportLink = "https://github.com/Kakumi/OPBSLauncher/issues"
 
 [ejs.welcome]
 welcomeHeader = "Bienvenue sur One Piece : Blue Sea"
-welcomeDescription = "One Piece : Blue Sea est un serveur Minecraft RP qui se déroule dans l’univers du célèbre manga One Piece. Ici, votre aventure n’aura de limite que votre imagination. Découvrez la mer de South Blue, ses îles inédites, ses personnages uniques, ses quêtes et ses événements. Apprenez un métier, fondez votre entreprise ou incarnez un citoyen paisible. Rejoignez la Marine pour défendre les îles ou partez à l’aventure en pirate, créez votre équipage, construisez votre navire et partez en quête des trésors cachés de cette vaste mer."
+welcomeDescription = "One Piece : Blue Sea est un serveur Minecraft qui se déroule dans l’univers du célèbre manga One Piece. Ici, votre aventure n’aura de limite que votre imagination. Découvrez la mer de South Blue, ses îles inédites, ses personnages uniques, ses quêtes et ses événements. Apprenez un métier ou incarnez un citoyen paisible. Rejoignez la Marine pour défendre les îles ou partez à l’aventure en pirate, créez votre équipage, construisez votre navire et partez en quête des trésors cachés de cette vaste mer."
 welcomeDescCTA = "Votre aventure commence ici."

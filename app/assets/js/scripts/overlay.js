@@ -105,8 +105,10 @@ function toggleOverlay(
       duration: 250,
       start: () => {
         if (getCurrentView() === VIEWS.settings) {
-          document.getElementById("settingsContainer").style.backgroundColor =
-            "transparent";
+          // The overlay veil replaces the settings one, title bar strip included.
+          const settings = document.getElementById("settingsContainer");
+          settings.style.backgroundColor = "transparent";
+          settings.style.boxShadow = "0 -22px 0 0 rgba(0, 0, 0, 0)";
         }
       },
     });
@@ -118,8 +120,9 @@ function toggleOverlay(
       duration: 250,
       start: () => {
         if (getCurrentView() === VIEWS.settings) {
-          document.getElementById("settingsContainer").style.backgroundColor =
-            "rgba(0, 0, 0, 0.50)";
+          const settings = document.getElementById("settingsContainer");
+          settings.style.backgroundColor = "rgba(0, 0, 0, 0.50)";
+          settings.style.boxShadow = null;
         }
       },
       complete: () => {

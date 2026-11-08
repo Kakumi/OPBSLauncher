@@ -535,16 +535,19 @@ function updateMusicToggle(playing) {
     toggle.toggleAttribute("muted", !playing);
     toggle.title = Lang.queryJS(playing ? "music.mute" : "music.unmute");
   }
+  // The capsule shows the current track while playing, "Music off" otherwise (CSS).
+  const bar = document.getElementById("musicBar");
+  if (bar) {
+    bar.toggleAttribute("playing", playing);
+  }
 }
 
 function updateMusic(allowed, volume) {
-  const musicContainer = document.getElementById("musicInfo");
   const audioElement = document.getElementById("audio-player");
   updateMusicToggle(allowed);
   if (audioElement) {
     audioElement.volume = volume / 2;
     if (allowed) {
-      musicContainer.style.display = "flex";
       // Music was disabled at startup: no track loaded yet, pick one.
       if (!audioElement.getAttribute("src")) {
         playRandomTrack(audioElement);
@@ -554,7 +557,6 @@ function updateMusic(allowed, volume) {
         console.error("Erreur de lecture audio :", err);
       });
     } else {
-      musicContainer.style.display = "none";
       audioElement.pause();
     }
   }
@@ -571,10 +573,19 @@ function setupMusic() {
   if (ConfigManager.getAllowMusic()) {
     // Lecture initiale
     playRandomTrack(audioElement);
-  } else {
-    document.getElementById("musicInfo").style.display = "none";
   }
   updateMusicToggle(ConfigManager.getAllowMusic());
+
+  document.getElementById("musicOffLabel").textContent =
+    Lang.queryJS("music.muted");
+
+  // Next track button of the music capsule.
+  const nextButton = document.getElementById("musicNext");
+  nextButton.title = Lang.queryJS("music.next");
+  nextButton.onclick = () => {
+    nextButton.blur();
+    playRandomTrack(audioElement);
+  };
 
   // Mute button of the title bar: same setting as Settings > Launcher > Music.
   document.getElementById("musicToggle").onclick = () => {

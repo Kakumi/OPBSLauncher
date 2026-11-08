@@ -103,10 +103,14 @@ function setLaunchEnabled(val) {
   document.getElementById("launch_button").disabled = !val;
 }
 
-// Bind launch button
-document
-  .getElementById("launch_button")
-  .addEventListener("click", async (e) => {
+// Bind launch button. A pending launcher update is offered first (uicore.js).
+document.getElementById("launch_button").addEventListener("click", (e) => {
+  if (!promptLauncherUpdateBeforeLaunch(launchGame)) {
+    launchGame();
+  }
+});
+
+async function launchGame() {
     loggerLanding.info("Launching game..");
     try {
       const server = (await DistroAPI.getDistribution()).getServerById(
@@ -140,7 +144,7 @@ document
         Lang.queryJS("landing.launch.failureText"),
       );
     }
-  });
+}
 
 // Bind settings button
 document.getElementById("settingsMediaButton").onclick = async (e) => {
@@ -874,6 +878,16 @@ let newsActive = false;
 let newsGlideCount = 0;
 
 /**
+ * Tabs of the news panel, each one an RSS feed served by the "opbs-launcher"
+ * plugin of the website. "news" keeps using the "rss" field of distribution.json.
+ * OPBS_FEED_BASE (environment) points the other tabs elsewhere, for tests.
+ */
+const OPBS_FEED_BASE =
+  process.env.OPBS_FEED_BASE ?? "https://opbluesea.fr/api/opbs-launcher/";
+const NEWS_FEEDS = ["news", "patchnotes", "wiki", "vote"];
+let currentFeed = "news";
+
+/**
  * Show the news UI via a slide animation.
  *
  * @param {boolean} up True to slide up, otherwise false.
@@ -907,6 +921,9 @@ function slide_(up) {
     //date.toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric'})
     //landingContainer.style.background = 'rgba(29, 29, 29, 0.55)'
     landingContainer.style.background = "rgba(0, 0, 0, 0.50)";
+    // Same veil under the title bar (see "View veil under the title bar" in launcher.css).
+    landingContainer.style.boxShadow = "0 -22px 0 0 rgba(0, 0, 0, 0.5)";
+    landingContainer.setAttribute("newsopen", "");
     setTimeout(() => {
       if (newsGlideCount === 1) {
         lCLCenter.style.transition = "none";
@@ -919,6 +936,8 @@ function slide_(up) {
       newsGlideCount--;
     }, 2000);
     landingContainer.style.background = null;
+    landingContainer.style.boxShadow = null;
+    landingContainer.removeAttribute("newsopen");
     lCLCenter.style.transition = null;
     newsBtn.style.transition = null;
     newsContainer.style.top = "100%";
@@ -930,8 +949,54 @@ function slide_(up) {
   }
 }
 
-// Bind news button.
+// Bind news button: opens the panel on the "news" tab, or closes it.
 document.getElementById("newsButton").onclick = () => {
+  toggleNewsPanel("news");
+};
+
+// Tabs of the panel.
+Array.from(document.getElementsByClassName("newsTab")).forEach((tab) => {
+  tab.onclick = () => {
+    tab.blur();
+    showFeed(tab.dataset.feed);
+  };
+});
+
+// Patchnote / Wiki / Vote buttons of the right dock open the panel on their tab
+// instead of the website (stopPropagation: no external link opening).
+Array.from(document.querySelectorAll(".mediaURL[data-feed]")).forEach(
+  (link) => {
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      document.activeElement.blur();
+      if (!newsActive) {
+        toggleNewsPanel(link.dataset.feed);
+      } else {
+        showFeed(link.dataset.feed);
+      }
+    });
+  },
+);
+
+// Wiki page list.
+document.getElementById("newsArticleSelect").onchange = (e) => {
+  const index = parseInt(e.target.value);
+  if (newsArr != null && newsArr[index] != null) {
+    displayArticle(newsArr[index], index + 1);
+    newsArticleContentScrollable.scrollTop = 0;
+  }
+};
+
+/**
+ * Open the news panel on a tab, or close it if it is open.
+ *
+ * @param {string} feed Tab shown when opening (see NEWS_FEEDS).
+ */
+function toggleNewsPanel(feed) {
+  if (!newsActive) {
+    showFeed(feed);
+  }
   // Toggle tabbing.
   if (newsActive) {
     $("#landingContainer *").removeAttr("tabindex");
@@ -941,16 +1006,54 @@ document.getElementById("newsButton").onclick = () => {
     $("#newsContainer, #newsContainer *, #lower, #lower #center *").removeAttr(
       "tabindex",
     );
-    if (newsAlertShown) {
-      $("#newsButtonAlert").fadeOut(2000);
-      newsAlertShown = false;
-      ConfigManager.setNewsCacheDismissed(true);
-      ConfigManager.save();
-    }
   }
   slide_(!newsActive);
   newsActive = !newsActive;
-};
+}
+
+/**
+ * Show a tab of the news panel (loads its feed when it changes).
+ *
+ * @param {string} feed See NEWS_FEEDS.
+ */
+async function showFeed(feed) {
+  if (!NEWS_FEEDS.includes(feed)) {
+    feed = "news";
+  }
+  Array.from(document.getElementsByClassName("newsTab")).forEach((tab) =>
+    tab.toggleAttribute("active", tab.dataset.feed === feed),
+  );
+  // The red dot of the news button is about the "news" tab only.
+  if (feed === "news" && newsAlertShown) {
+    $("#newsButtonAlert").fadeOut(2000);
+    document
+      .querySelector('.newsTab[data-feed="news"]')
+      .removeAttribute("unread");
+    newsAlertShown = false;
+    ConfigManager.setNewsCacheDismissed(true);
+    ConfigManager.save();
+  }
+  if (feed === currentFeed && newsArr != null) {
+    return;
+  }
+  currentFeed = feed;
+  newsArr = null;
+  await showNewsLoading();
+  // Another tab may have been chosen during the fade.
+  if (feed === currentFeed) {
+    await initNews(feed);
+  }
+}
+
+/**
+ * Replace the shown article by the loading message.
+ */
+async function showNewsLoading() {
+  await $("#newsContent").fadeOut(150).promise();
+  $("#newsErrorFailed, #newsErrorNone").hide();
+  $("#newsErrorLoading").show();
+  await $("#newsErrorContainer").fadeIn(150).promise();
+}
 
 // Array to store article meta.
 let newsArr = null;
@@ -964,6 +1067,11 @@ let newsLoadingListener = null;
  * @param {boolean} val True to set loading animation, otherwise false.
  */
 function setNewsLoading(val) {
+  // Two loads can overlap (tab change, distribution refresh): one animation only.
+  if (newsLoadingListener != null) {
+    clearInterval(newsLoadingListener);
+    newsLoadingListener = null;
+  }
   if (val) {
     const nLStr = Lang.queryJS("landing.news.checking");
     let dotStr = "..";
@@ -976,11 +1084,6 @@ function setNewsLoading(val) {
       }
       nELoadSpan.innerHTML = nLStr + dotStr;
     }, 750);
-  } else {
-    if (newsLoadingListener != null) {
-      clearInterval(newsLoadingListener);
-      newsLoadingListener = null;
-    }
   }
 }
 
@@ -1009,15 +1112,9 @@ newsArticleContentScrollable.onscroll = (e) => {
  * @returns {Promise.<void>} A promise which resolves when the news
  * content has finished loading and transitioning.
  */
-function reloadNews() {
-  return new Promise((resolve, reject) => {
-    $("#newsContent").fadeOut(250, () => {
-      $("#newsErrorLoading").fadeIn(250);
-      initNews().then(() => {
-        resolve();
-      });
-    });
-  });
+async function reloadNews() {
+  await showNewsLoading();
+  await initNews();
 }
 
 let newsAlertShown = false;
@@ -1028,6 +1125,10 @@ let newsAlertShown = false;
 function showNewsAlert() {
   newsAlertShown = true;
   $(newsButtonAlert).fadeIn(250);
+  // Also on the "Actualités" tab, seen while another tab is open.
+  document
+    .querySelector('.newsTab[data-feed="news"]')
+    .setAttribute("unread", "");
 }
 
 async function digestMessage(str) {
@@ -1040,19 +1141,29 @@ async function digestMessage(str) {
   return hashHex;
 }
 
+// Number of the last feed load: the answer of an older one (tab left meanwhile) is dropped.
+let newsRequest = 0;
+
 /**
  * Initialize News UI. This will load the news and prepare
  * the UI accordingly.
  *
+ * @param {string} feed Optional. The tab to load (see NEWS_FEEDS), the shown one by default.
  * @returns {Promise.<void>} A promise which resolves when the news
  * content has finished loading and transitioning.
  */
-async function initNews() {
+async function initNews(feed = currentFeed) {
+  const request = ++newsRequest;
   setNewsLoading(true);
 
-  const news = await loadNews();
+  const news = await loadNews(feed);
+
+  if (request !== newsRequest) {
+    return;
+  }
 
   newsArr = news?.articles || null;
+  fillWikiSelect(feed);
 
   if (newsArr == null) {
     // News Loading Failed
@@ -1064,12 +1175,14 @@ async function initNews() {
     // No News Articles
     setNewsLoading(false);
 
-    ConfigManager.setNewsCache({
-      date: null,
-      content: null,
-      dismissed: false,
-    });
-    ConfigManager.save();
+    if (feed === "news") {
+      ConfigManager.setNewsCache({
+        date: null,
+        content: null,
+        dismissed: false,
+      });
+      ConfigManager.save();
+    }
 
     await $("#newsErrorLoading").fadeOut(250).promise();
     await $("#newsErrorNone").fadeIn(250).promise();
@@ -1077,43 +1190,52 @@ async function initNews() {
     // Success
     setNewsLoading(false);
 
-    const lN = newsArr[0];
-    const cached = ConfigManager.getNewsCache();
-    let newHash = await digestMessage(lN.content);
-    let newDate = new Date(lN.date);
-    let isNew = false;
+    // New article alert (red dot of the news button): "news" tab only.
+    if (feed === "news") {
+      const lN = newsArr[0];
+      const cached = ConfigManager.getNewsCache();
+      let newHash = await digestMessage(lN.content);
+      let newDate = new Date(lN.timestamp);
+      let isNew = false;
 
-    if (cached.date != null && cached.content != null) {
-      if (new Date(cached.date) >= newDate) {
-        // Compare Content
-        if (cached.content !== newHash) {
-          isNew = true;
-          showNewsAlert();
-        } else {
-          if (!cached.dismissed) {
+      if (cached.date != null && cached.content != null) {
+        if (new Date(cached.date) >= newDate) {
+          // Compare Content
+          if (cached.content !== newHash) {
             isNew = true;
-            showNewsAlert();
+          } else if (!cached.dismissed) {
+            isNew = true;
           }
+        } else {
+          isNew = true;
         }
       } else {
         isNew = true;
-        showNewsAlert();
       }
-    } else {
-      isNew = true;
-      showNewsAlert();
-    }
 
-    if (isNew) {
-      ConfigManager.setNewsCache({
-        date: newDate.getTime(),
-        content: newHash,
-        dismissed: false,
-      });
-      ConfigManager.save();
+      // Already read if the panel is open on this tab.
+      if (isNew && newsActive && currentFeed === "news") {
+        ConfigManager.setNewsCache({
+          date: newDate.getTime(),
+          content: newHash,
+          dismissed: true,
+        });
+        ConfigManager.save();
+      } else if (isNew) {
+        showNewsAlert();
+        ConfigManager.setNewsCache({
+          date: newDate.getTime(),
+          content: newHash,
+          dismissed: false,
+        });
+        ConfigManager.save();
+      }
     }
 
     const switchHandler = (forward) => {
+      if (newsArr == null || newsArr.length === 0) {
+        return;
+      }
       let cArt = parseInt(newsContent.getAttribute("article"));
       let nxtArt = forward
         ? cArt >= newsArr.length - 1
@@ -1133,9 +1255,44 @@ async function initNews() {
       switchHandler(false);
     };
     await $("#newsErrorContainer").fadeOut(250).promise();
+    if (request !== newsRequest || newsArr == null) {
+      return;
+    }
     displayArticle(newsArr[0], 1);
+    newsArticleContentScrollable.scrollTop = 0;
     await $("#newsContent").fadeIn(250).promise();
   }
+}
+
+/**
+ * The "wiki" tab has many pages: a list grouped by category (titles are
+ * "Category › Page") lets the player pick one. Hidden on the other tabs.
+ *
+ * @param {string} feed The loaded tab.
+ */
+function fillWikiSelect(feed) {
+  const select = document.getElementById("newsArticleSelect");
+  select.innerHTML = "";
+  if (feed !== "wiki" || newsArr == null || newsArr.length === 0) {
+    select.style.display = "none";
+    return;
+  }
+  const groups = new Map();
+  newsArr.forEach((article, i) => {
+    const parts = article.title.split(" › ");
+    const category = parts.length > 1 ? parts.shift() : "";
+    if (!groups.has(category)) {
+      const group = document.createElement("optgroup");
+      group.label = category;
+      groups.set(category, group);
+      select.appendChild(group);
+    }
+    const option = document.createElement("option");
+    option.value = String(i);
+    option.textContent = parts.join(" › ");
+    groups.get(category).appendChild(option);
+  });
+  select.style.display = "";
 }
 
 /**
@@ -1175,10 +1332,15 @@ document.addEventListener("keydown", (e) => {
 function displayArticle(articleObject, index) {
   newsArticleTitle.innerHTML = articleObject.title;
   newsArticleTitle.href = articleObject.link;
-  newsArticleAuthor.innerHTML = "by " + articleObject.author;
+  newsArticleAuthor.innerHTML = "par " + articleObject.author;
   newsArticleDate.innerHTML = articleObject.date;
+  // No date on the "vote" tab (the page is always up to date).
+  newsArticleDate.style.display = articleObject.date ? "" : "none";
+  document.getElementById("newsArticleSelect").value = String(index - 1);
   newsArticleComments.innerHTML = articleObject.comments;
   newsArticleComments.href = articleObject.commentsLink;
+  // The changelog feed has no comments: hide the counter instead of "0".
+  newsArticleComments.style.display = articleObject.comments ? "" : "none";
   newsArticleContentScrollable.innerHTML =
     '<div id="newsArticleContentWrapper"><div class="newsArticleSpacerTop"></div>' +
     articleObject.content +
@@ -1196,22 +1358,30 @@ function displayArticle(articleObject, index) {
     "ejs.landing.newsNavigationStatus",
     { currentPage: index, totalPages: newsArr.length },
   );
+  // No "1 sur 1" arrows on a single page tab (vote).
+  document.getElementById("newsNavigationContainer").style.visibility =
+    newsArr.length > 1 ? "" : "hidden";
   newsContent.setAttribute("article", index - 1);
 }
 
 /**
- * Load news information from the RSS feed specified in the
- * distribution index.
+ * Load the articles of a tab. "news" reads the RSS feed specified in the
+ * distribution index, the other tabs the matching feed of the website.
+ *
+ * @param {string} feed Optional. See NEWS_FEEDS.
  */
-async function loadNews() {
-  const distroData = await DistroAPI.getDistribution();
-  if (!distroData.rawDistribution.rss) {
-    loggerLanding.debug("No RSS feed provided.");
-    return null;
+async function loadNews(feed = "news") {
+  let newsFeed = OPBS_FEED_BASE + feed;
+  if (feed === "news") {
+    const distroData = await DistroAPI.getDistribution();
+    if (!distroData.rawDistribution.rss) {
+      loggerLanding.debug("No RSS feed provided.");
+      return null;
+    }
+    newsFeed = distroData.rawDistribution.rss;
   }
 
   const promise = new Promise((resolve, reject) => {
-    const newsFeed = distroData.rawDistribution.rss;
     const newsHost = new URL(newsFeed).origin + "/";
     $.ajax({
       url: newsFeed,
@@ -1223,21 +1393,24 @@ async function loadNews() {
           // JQuery Element
           const el = $(items[i]);
 
-          // Resolve date.
-          const date = new Date(el.find("pubDate").text()).toLocaleDateString(
-            "fr-FR",
-            {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-              hour: "numeric",
-              minute: "numeric",
-            },
-          );
+          // Resolve date (none on the "vote" tab).
+          const timestamp = new Date(el.find("pubDate").text()).getTime();
+          const date =
+            feed === "vote"
+              ? ""
+              : new Date(timestamp).toLocaleDateString("fr-FR", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                  hour: "numeric",
+                  minute: "numeric",
+                });
 
-          // Resolve comments.
-          let comments = el.find("slash\\:comments").text() || "0";
-          comments = comments + " Comment" + (comments === "1" ? "" : "s");
+          // Resolve comments (none in the changelog feed: no counter shown).
+          const commentCount = el.find("slash\\:comments").text();
+          const comments = commentCount
+            ? commentCount + " commentaire" + (commentCount === "1" ? "" : "s")
+            : "";
 
           // Fix relative links in content.
           let content = el.find("content\\:encoded").text();
@@ -1259,6 +1432,7 @@ async function loadNews() {
             link,
             title,
             date,
+            timestamp,
             author,
             content,
             comments,
@@ -1269,7 +1443,8 @@ async function loadNews() {
           articles,
         });
       },
-      timeout: 2500,
+      // The website may have to ask Discord first (and publish new patch notes).
+      timeout: 10000,
     }).catch((err) => {
       resolve({
         articles: null,

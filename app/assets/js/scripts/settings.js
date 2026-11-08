@@ -688,13 +688,13 @@ function populateAuthAccounts() {
 
     const accHtml = `<div class="settingsAuthAccount" uuid="${acc.uuid}">
             <div class="settingsAuthAccountLeft">
-                <img class="settingsAuthAccountImage" alt="${
+                <img class="settingsAuthAccountAvatar" alt="${
                   acc.displayName
-                }" src="https://opbluesea.fr/api/skin-api/avatars/combo/${
+                }" src="${opbsAvatarUrl(
+      acc
+    )}" data-skin-fallback="https://mineskin.eu/helm/${
       acc.displayName
-    }?v=${Date.now()}" data-skin-fallback="https://mineskin.eu/armor/body/${
-      acc.displayName
-    }/150">
+    }/100">
             </div>
             <div class="settingsAuthAccountRight">
                 <div class="settingsAuthAccountDetails">
@@ -744,6 +744,106 @@ function populateAuthAccounts() {
   });
 
   settingsCurrentMicrosoftAccounts.innerHTML = microsoftAuthAccountStr;
+  drawAccountSkin();
+}
+
+// Skin of the selected account, as loaded by the 3D viewer (skinpreview.js).
+let accountSkinImage = null;
+document.addEventListener("opbs:currentskin", (e) => {
+  accountSkinImage = e.detail;
+  drawAccountSkin();
+});
+
+/**
+ * Show the selected account's skin, seen from the front, on its account card
+ * (in place of its profile picture). Other accounts keep their picture.
+ */
+function drawAccountSkin() {
+  const selected = ConfigManager.getSelectedAccount();
+  if (accountSkinImage == null || selected == null) {
+    return;
+  }
+  const holder = document.querySelector(
+    `.settingsAuthAccount[uuid="${selected.uuid}"] .settingsAuthAccountLeft`
+  );
+  if (holder != null) {
+    holder.replaceChildren(skinFrontCanvas(accountSkinImage));
+  }
+}
+
+/**
+ * Front view of a Minecraft skin, both layers, 16x32 pixels (shown enlarged,
+ * pixelated). Handles slim arms and the old 64x32 format (mirrored limbs).
+ *
+ * @param {HTMLImageElement} img The skin texture.
+ * @returns {HTMLCanvasElement}
+ */
+function skinFrontCanvas(img) {
+  const legacy = img.naturalHeight === 32;
+  let slim = false;
+  let hatShown = true;
+  try {
+    const t = document.createElement("canvas");
+    t.width = 64;
+    t.height = legacy ? 32 : 64;
+    const tg = t.getContext("2d");
+    tg.drawImage(img, 0, 0);
+    const transparent = (x, y, w, h) =>
+      tg
+        .getImageData(x, y, w, h)
+        .data.every((v, i) => i % 4 !== 3 || v === 0);
+    const opaque = (x, y, w, h) =>
+      tg
+        .getImageData(x, y, w, h)
+        .data.every((v, i) => i % 4 !== 3 || v === 255);
+    // Slim skins leave the back columns of the right arm empty.
+    slim = !legacy && transparent(54, 20, 2, 12);
+    // Old skins often have an opaque (black) hat layer: not a real hat.
+    hatShown = !(legacy && opaque(40, 8, 8, 8));
+  } catch (err) {
+    // Unreadable texture (no CORS): classic arms, hat shown.
+  }
+
+  const c = document.createElement("canvas");
+  c.width = 16;
+  c.height = 32;
+  c.className = "settingsAuthAccountSkin";
+  const g = c.getContext("2d");
+  g.imageSmoothingEnabled = false;
+  const a = slim ? 3 : 4;
+  const part = (sx, sy, w, h, dx, dy, mirror = false) => {
+    if (mirror) {
+      g.save();
+      g.translate(dx + w, dy);
+      g.scale(-1, 1);
+      g.drawImage(img, sx, sy, w, h, 0, 0, w, h);
+      g.restore();
+    } else {
+      g.drawImage(img, sx, sy, w, h, dx, dy, w, h);
+    }
+  };
+
+  // The player's right side is on the left of the picture.
+  part(8, 8, 8, 8, 4, 0); // head
+  part(20, 20, 8, 12, 4, 8); // body
+  part(44, 20, a, 12, 4 - a, 8); // right arm
+  part(4, 20, 4, 12, 4, 20); // right leg
+  if (legacy) {
+    part(44, 20, 4, 12, 12, 8, true); // left arm
+    part(4, 20, 4, 12, 8, 20, true); // left leg
+  } else {
+    part(36, 52, a, 12, 12, 8); // left arm
+    part(20, 52, 4, 12, 8, 20); // left leg
+    part(20, 36, 8, 12, 4, 8); // jacket
+    part(44, 36, a, 12, 4 - a, 8); // right sleeve
+    part(52, 52, a, 12, 12, 8); // left sleeve
+    part(4, 36, 4, 12, 4, 20); // right trouser leg
+    part(4, 52, 4, 12, 8, 20); // left trouser leg
+  }
+  if (hatShown) {
+    part(40, 8, 8, 8, 4, 0); // hat
+  }
+  return c;
 }
 
 /**

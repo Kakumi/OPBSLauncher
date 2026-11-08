@@ -24,7 +24,7 @@
       h3,
       h4,
       h5 {
-        color: #22a8f4 !important;
+        color: #38c8c1 !important;
       }
 
       #background-container {
@@ -97,8 +97,29 @@
     <%- include('overlay') %>
     <div id="loadingContainer">
       <div id="loadingContent">
+        <%# Ship's wheel drawn in SVG (was loading.gif, blurry once scaled). %>
         <div id="loadSpinnerContainer">
-          <img id="loadCenterImage" src="assets/images/loading.gif" />
+          <svg id="loadWheel" viewBox="-60 -60 120 120" aria-hidden="true">
+            <g class="loadWheelTurn">
+              <g id="loadSpoke">
+                <line x1="0" y1="-15" x2="0" y2="-45" />
+                <line class="loadHandle" x1="0" y1="-46" x2="0" y2="-53" />
+              </g>
+              <use href="#loadSpoke" transform="rotate(45)" />
+              <use href="#loadSpoke" transform="rotate(90)" />
+              <use href="#loadSpoke" transform="rotate(135)" />
+              <use href="#loadSpoke" transform="rotate(180)" />
+              <use href="#loadSpoke" transform="rotate(225)" />
+              <use href="#loadSpoke" transform="rotate(270)" />
+              <use href="#loadSpoke" transform="rotate(315)" />
+              <circle class="loadRim" r="36" />
+              <circle class="loadRim loadInner" r="15" />
+              <circle class="loadHub" r="6" />
+            </g>
+          </svg>
+        </div>
+        <div id="loadText">
+          <%- lang('landing.startupLoading') %><span class="loadDot">.</span><span class="loadDot">.</span><span class="loadDot">.</span>
         </div>
       </div>
     </div>

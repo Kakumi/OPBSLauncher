@@ -99,10 +99,21 @@ if (!isDev) {
           // macOS (see electron-builder.yml), so arm64 installs are also sent to
           // the x64 build, which runs under Rosetta.
           info.darwindownload = `https://github.com/Kakumi/OPBSLauncher/releases/download/v${info.version}/One-Piece-Blue-Sea-setup-x64.dmg`;
-          showUpdateUI(info);
+          setUpdateState("available", info);
+        } else if (launcherUpdate.state !== "ready") {
+          // Windows / Linux: electron-updater downloads it in the background.
+          setUpdateState("downloading", { ...info, percent: 0 });
         }
 
         populateSettingsUpdateInformation(info);
+        break;
+      case "download-progress":
+        if (launcherUpdate.state === "downloading" && info) {
+          setUpdateState("downloading", {
+            ...launcherUpdate.info,
+            percent: info.percent,
+          });
+        }
         break;
       case "update-downloaded":
         loggerAutoUpdater.info(
@@ -117,7 +128,7 @@ if (!isDev) {
             }
           }
         );
-        showUpdateUI(info);
+        setUpdateState("ready", info);
         break;
       case "update-not-available":
         loggerAutoUpdater.info("No new update found.");
@@ -132,6 +143,11 @@ if (!isDev) {
         ipcRenderer.send("autoUpdateAction", "checkForUpdate");
         break;
       case "realerror":
+        // A failed download must not leave the banner stuck: the next check
+        // (every 30 minutes) will try again.
+        if (launcherUpdate.state === "downloading") {
+          setUpdateState(null);
+        }
         if (info != null && info.code != null) {
           if (info.code === "ERR_UPDATER_INVALID_RELEASE_FEED") {
             loggerAutoUpdater.info("No suitable releases found.");
@@ -162,30 +178,124 @@ function changeAllowPrerelease(val) {
   ipcRenderer.send("autoUpdateAction", "allowPrereleaseChange", val);
 }
 
-function showUpdateUI(info) {
-  //TODO Make this message a bit more informative `${info.version}`
-  document.getElementById("image_seal_container").setAttribute("update", true);
-  document.getElementById("image_seal_container").onclick = () => {
-    /*setOverlayContent('Update Available', 'A new update for the launcher is available. Would you like to install now?', 'Install', 'Later')
-        setOverlayHandler(() => {
-            if(!isDev){
-                ipcRenderer.send('autoUpdateAction', 'installUpdateNow')
-            } else {
-                console.error('Cannot install updates in development environment.')
-                toggleOverlay(false)
-            }
-        })
-        setDismissHandler(() => {
-            toggleOverlay(false)
-        })
-        toggleOverlay(true, true)*/
-    switchView(getCurrentView(), VIEWS.settings, 500, 500, () => {
-      settingsNavItemListener(
-        document.getElementById("settingsNavUpdate"),
-        false
-      );
+/**
+ * Launcher update state, shown by the banner of the title bar (frameUpdate.ejs)
+ * and checked before launching the game (see the launch button in landing.js).
+ *
+ * state: null (up to date), "downloading" (Windows / Linux, background download),
+ * "ready" (downloaded, installed on restart), "available" (macOS, manual .dmg).
+ */
+const launcherUpdate = { state: null, info: null, promptShown: false };
+
+/**
+ * Install the pending launcher update: restart and install (Windows / Linux), or
+ * open the .dmg download page (macOS).
+ */
+function installLauncherUpdate() {
+  if (launcherUpdate.state === "ready") {
+    if (isDev) {
+      loggerAutoUpdater.warn("Cannot install updates in development environment.");
+      return;
+    }
+    ipcRenderer.send("autoUpdateAction", "installUpdateNow");
+  } else if (
+    launcherUpdate.state === "available" &&
+    launcherUpdate.info &&
+    launcherUpdate.info.darwindownload
+  ) {
+    shell.openExternal(launcherUpdate.info.darwindownload);
+  }
+}
+
+/**
+ * Update the banner of the title bar.
+ *
+ * @param {string|null} state See launcherUpdate.
+ * @param {Object} info Update info from electron-updater (version, percent...).
+ */
+function setUpdateState(state, info) {
+  launcherUpdate.state = state;
+  if (info) {
+    launcherUpdate.info = info;
+  }
+  const banner = document.getElementById("updateBanner");
+  if (banner == null) {
+    return;
+  }
+  if (state == null) {
+    banner.style.display = "none";
+    banner.removeAttribute("data-state");
+    return;
+  }
+  const version = (launcherUpdate.info && launcherUpdate.info.version) || "";
+  const text = document.getElementById("updateBannerText");
+  const button = document.getElementById("updateBannerButton");
+  if (state === "downloading") {
+    const percent = Math.max(
+      0,
+      Math.min(100, Math.round((launcherUpdate.info && launcherUpdate.info.percent) || 0))
+    );
+    text.textContent = Lang.queryJS("uicore.autoUpdate.bannerDownloading", {
+      version,
+      percent,
     });
+    document.getElementById("updateBannerProgressFill").style.width = percent + "%";
+  } else if (state === "ready") {
+    text.textContent = Lang.queryJS("uicore.autoUpdate.bannerReady", { version });
+    button.textContent = Lang.queryJS("uicore.autoUpdate.bannerReadyButton");
+  } else if (state === "available") {
+    text.textContent = Lang.queryJS("uicore.autoUpdate.bannerAvailable", { version });
+    button.textContent = Lang.queryJS("uicore.autoUpdate.bannerDownloadButton");
+  }
+  button.onclick = () => {
+    button.blur();
+    installLauncherUpdate();
   };
+  if (banner.getAttribute("data-state") !== state) {
+    banner.setAttribute("data-state", state);
+  }
+  banner.style.display = "flex";
+}
+
+/**
+ * Before launching the game: if a launcher update is ready (or available on
+ * macOS), offer to install it first. Shown once per session; "Play anyway"
+ * continues with the launch.
+ *
+ * @param {function} launch Starts the game.
+ * @returns {boolean} True if the prompt was shown (the launch waits for it).
+ */
+function promptLauncherUpdateBeforeLaunch(launch) {
+  if (
+    launcherUpdate.promptShown ||
+    (launcherUpdate.state !== "ready" && launcherUpdate.state !== "available")
+  ) {
+    return false;
+  }
+  launcherUpdate.promptShown = true;
+  const version = (launcherUpdate.info && launcherUpdate.info.version) || "";
+  const ready = launcherUpdate.state === "ready";
+  setOverlayContent(
+    Lang.queryJS("uicore.autoUpdate.promptTitle"),
+    Lang.queryJS(
+      ready ? "uicore.autoUpdate.promptReadyDesc" : "uicore.autoUpdate.promptAvailableDesc",
+      { version }
+    ),
+    Lang.queryJS(
+      ready ? "uicore.autoUpdate.bannerReadyButton" : "uicore.autoUpdate.bannerDownloadButton"
+    ),
+    Lang.queryJS("uicore.autoUpdate.promptPlayAnyway")
+  );
+  setOverlayHandler(() => {
+    toggleOverlay(false);
+    installLauncherUpdate();
+  });
+  setDismissHandler(() => {
+    toggleOverlay(false);
+    launch();
+  });
+  toggleOverlay(true, true);
+  return true;
 }
 
 /* jQuery Example
@@ -219,6 +329,21 @@ document.addEventListener(
           document.activeElement.blur();
         });
       });
+
+      // Maximize / restore icon follows the window state.
+      const syncMaximizedIcon = () => {
+        const maximized = remote.getCurrentWindow().isMaximized();
+        Array.from(document.getElementsByClassName("fRb")).forEach((val) =>
+          val.toggleAttribute("maximized", maximized)
+        );
+      };
+      remote.getCurrentWindow().on("maximize", syncMaximizedIcon);
+      remote.getCurrentWindow().on("unmaximize", syncMaximizedIcon);
+      window.addEventListener("beforeunload", () => {
+        remote.getCurrentWindow().removeListener("maximize", syncMaximizedIcon);
+        remote.getCurrentWindow().removeListener("unmaximize", syncMaximizedIcon);
+      });
+      syncMaximizedIcon();
 
       // Bind minimize button.
       Array.from(document.getElementsByClassName("fMb")).map((val) => {
