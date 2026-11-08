@@ -35,7 +35,9 @@ exports.initRPC = function (
       },
       {
         label: "Rejoins mon serveur",
-        url: "https://discord.gg/onepiecebluesea",
+        // Permanent invite, same as the website (the "onepiecebluesea"
+        // vanity link was lost with the boost level 3).
+        url: "https://discord.gg/aR2RWQ8pwD",
       },
     ],
   };
