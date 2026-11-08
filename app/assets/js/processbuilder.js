@@ -99,16 +99,20 @@ class ProcessBuilder {
 
     logger.info("Launch Arguments:", loggableArgs);
 
+    // The game must outlive the launcher when the launcher closes itself on launch.
+    const detached =
+      ConfigManager.getLaunchDetached() || ConfigManager.getCloseOnLaunch();
+
     const child = child_process.spawn(
       ConfigManager.getJavaExecutable(this.server.rawServer.id),
       args,
       {
         cwd: this.gameDir,
-        detached: ConfigManager.getLaunchDetached(),
+        detached,
       }
     );
 
-    if (ConfigManager.getLaunchDetached()) {
+    if (detached) {
       child.unref();
     }
 

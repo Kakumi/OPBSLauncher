@@ -97,6 +97,7 @@ const DEFAULT_CONFIG = {
       autoConnect: true,
       launchDetached: true,
       performanceMode: false,
+      closeOnLaunch: false,
     },
     launcher: {
       allowPrerelease: false,
@@ -842,6 +843,28 @@ exports.getPerformanceMode = function (def = false) {
  */
 exports.setPerformanceMode = function (performanceMode) {
   config.settings.game.performanceMode = performanceMode;
+};
+
+/**
+ * Check if the launcher closes itself once the game has finished loading.
+ *
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {boolean} Whether or not the launcher closes when the game is launched.
+ */
+exports.getCloseOnLaunch = function (def = false) {
+  return !def
+    ? config.settings.game.closeOnLaunch ??
+        DEFAULT_CONFIG.settings.game.closeOnLaunch
+    : DEFAULT_CONFIG.settings.game.closeOnLaunch;
+};
+
+/**
+ * Change whether the launcher closes itself once the game has finished loading.
+ *
+ * @param {boolean} closeOnLaunch Whether or not the launcher closes when the game is launched.
+ */
+exports.setCloseOnLaunch = function (closeOnLaunch) {
+  config.settings.game.closeOnLaunch = closeOnLaunch;
 };
 
 // Launcher Settings

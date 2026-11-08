@@ -571,6 +571,8 @@ const GAME_JOINED_REGEX = /\[.+\]: Sound engine started/;
 const GAME_LAUNCH_REGEX =
   /^\[.+\]: (?:MinecraftForge .+ Initialized|ModLauncher .+ starting: .+|Loading Minecraft .+ with Fabric Loader .+)$/;
 const MIN_LINGER = 5000;
+// End of the mod loading (Forge 1.12): most crashes happen before this line.
+const GAME_LOADED_REGEX = /Forge Mod Loader has successfully loaded \d+ mods/;
 
 async function dlAsync(login = true) {
   // Login parameter is temporary for debug purposes. Allows testing the validation/downloads without
@@ -785,6 +787,20 @@ async function dlAsync(login = true) {
       // Bind listeners to stdout.
       proc.stdout.on("data", tempListener);
       proc.stderr.on("data", gameErrorListener);
+
+      // Settings > Minecraft > close the launcher on launch: once the mods are
+      // loaded, so a crash while loading can still be reported. The game keeps
+      // running (it is started detached in that case, see processbuilder.js).
+      if (ConfigManager.getCloseOnLaunch()) {
+        const closeWhenLoaded = (data) => {
+          if (GAME_LOADED_REGEX.test(data)) {
+            proc.stdout.removeListener("data", closeWhenLoaded);
+            loggerLaunchSuite.info("Game loaded, closing the launcher.");
+            setTimeout(() => remote.app.quit(), 1000);
+          }
+        };
+        proc.stdout.on("data", closeWhenLoaded);
+      }
 
       updateMusic(false, ConfigManager.getMusicVolume());
 
