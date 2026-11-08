@@ -84,8 +84,8 @@ async function showMainUI(data) {
   updateSelectedServer(data.getServerById(ConfigManager.getSelectedServer()));
   refreshServerStatus();
   setTimeout(() => {
-    document.getElementById("frameBar").style.backgroundColor =
-      "rgba(0, 0, 0, 0.5)";
+    // The title bar stays transparent (no dark band); it only holds the window
+    // buttons and the current track.
     $("#main").show();
 
     const isLoggedIn = Object.keys(ConfigManager.getAuthAccounts()).length > 0;
@@ -524,13 +524,32 @@ ipcRenderer.on("distributionIndexDone", async (event, res) => {
   }
 });
 
+/**
+ * Show the state of the mute button of the title bar.
+ *
+ * @param {boolean} playing Whether the music is on.
+ */
+function updateMusicToggle(playing) {
+  const toggle = document.getElementById("musicToggle");
+  if (toggle) {
+    toggle.toggleAttribute("muted", !playing);
+    toggle.title = Lang.queryJS(playing ? "music.mute" : "music.unmute");
+  }
+}
+
 function updateMusic(allowed, volume) {
   const musicContainer = document.getElementById("musicInfo");
   const audioElement = document.getElementById("audio-player");
+  updateMusicToggle(allowed);
   if (audioElement) {
     audioElement.volume = volume / 2;
     if (allowed) {
       musicContainer.style.display = "flex";
+      // Music was disabled at startup: no track loaded yet, pick one.
+      if (!audioElement.getAttribute("src")) {
+        playRandomTrack(audioElement);
+        return;
+      }
       audioElement.play().catch((err) => {
         console.error("Erreur de lecture audio :", err);
       });
@@ -542,18 +561,32 @@ function updateMusic(allowed, volume) {
 }
 
 function setupMusic() {
+  const audioElement = document.getElementById("audio-player");
+  audioElement.volume = ConfigManager.getMusicVolume() / 2;
+  // Lecture suivante à la fin de la piste (aussi si la musique est activée plus tard)
+  audioElement.addEventListener("ended", () => {
+    playRandomTrack(audioElement);
+  });
+
   if (ConfigManager.getAllowMusic()) {
-    const audioElement = document.getElementById("audio-player");
     // Lecture initiale
     playRandomTrack(audioElement);
-
-    // Régler le volume de l'élément audio
-    audioElement.volume = ConfigManager.getMusicVolume() / 2;
-    // Lecture suivante à la fin de la piste
-    audioElement.addEventListener("ended", () => {
-      playRandomTrack(audioElement);
-    });
+  } else {
+    document.getElementById("musicInfo").style.display = "none";
   }
+  updateMusicToggle(ConfigManager.getAllowMusic());
+
+  // Mute button of the title bar: same setting as Settings > Launcher > Music.
+  document.getElementById("musicToggle").onclick = () => {
+    const allowed = !ConfigManager.getAllowMusic();
+    ConfigManager.setAllowMusic(allowed);
+    ConfigManager.save();
+    const settingsCheckbox = document.getElementById("allowMusicCb");
+    if (settingsCheckbox) {
+      settingsCheckbox.checked = allowed;
+    }
+    updateMusic(allowed, ConfigManager.getMusicVolume());
+  };
 }
 
 function setupBackground() {

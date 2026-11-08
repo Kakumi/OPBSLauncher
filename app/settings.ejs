@@ -105,7 +105,30 @@
           ><%- lang('settings.skinTabHeaderDesc') %></span
         >
       </div>
-      <div class="fileUploadSkinContainerPreview">
+      <div id="skinStudio">
+        <!-- 3D preview (skinpreview.js): current skin, or a skin of the list being previewed. -->
+        <div id="skinViewerPanel">
+          <canvas id="skinViewerCanvas"></canvas>
+          <div id="skinViewerCaption"></div>
+          <button id="skinViewerBack" style="display: none">
+            <%- lang('settings.skinViewerBack') %>
+          </button>
+          <div id="skinViewerAnimations">
+            <button class="skinViewerAnim" anim="idle" selected>
+              <%- lang('settings.skinAnimIdle') %>
+            </button>
+            <button class="skinViewerAnim" anim="walk">
+              <%- lang('settings.skinAnimWalk') %>
+            </button>
+            <button class="skinViewerAnim" anim="run">
+              <%- lang('settings.skinAnimRun') %>
+            </button>
+            <button class="skinViewerAnim" anim="wave">
+              <%- lang('settings.skinAnimWave') %>
+            </button>
+          </div>
+        </div>
+        <div id="skinSidePanel">
         <div id="settingsSkinFileSelContainer">
           <span class="settingsFieldTitle"
             ><%- lang('settings.uploadSkin') %></span
@@ -149,14 +172,60 @@
             <div id="settingsSkinErrorMessage" class="settingsFieldDesc"></div>
           </div>
         </div>
-
-        <img id="uploadSkinCurrentPreview" />
-      </div>
-      <div style="display: block" class="settingsFieldContainer">
-        <span class="settingsFieldTitle"
-          ><%- lang('settings.chooseSkinFromList') %></span
-        >
-        <div class="skin-container" id="skinsWrapper"></div>
+        <!-- Shown only when capes are enabled on the website (Skin API settings). -->
+        <div id="settingsCapeContainer" style="display: none">
+          <span class="settingsFieldTitle"
+            ><%- lang('settings.uploadCape') %></span
+          >
+          <div class="settingsFileSelActions">
+            <input
+              type="file"
+              id="settingsCapeUpload"
+              accept="image/png"
+              style="display: none"
+            />
+            <button class="settingsFileSelButton" id="settingsCapeUploadBtn">
+              <%- lang('settings.javaExecSelButtonText') %>
+            </button>
+          </div>
+          <div id="settingsCapeMessage" class="settingsFieldDesc"></div>
+        </div>
+        <div id="skinListContainer">
+          <span class="settingsFieldTitle"
+            ><%- lang('settings.chooseSkinFromList') %></span
+          >
+          <span class="settingsFieldDesc"
+            ><%- lang('settings.skinListHint') %></span
+          >
+          <div class="skin-container" id="skinsWrapper"></div>
+        </div>
+        <!-- Marine skin studio (marineskin.js), shown once the outfit list is loaded. -->
+        <div id="marineStudio" style="display: none">
+          <span class="settingsFieldTitle"
+            ><%- lang('settings.marineTitle') %></span
+          >
+          <span class="settingsFieldDesc"
+            ><%- lang('settings.marineDesc') %></span
+          >
+          <div id="marineToneRow">
+            <span><%- lang('settings.marineSkinTone') %></span>
+            <input type="color" id="marineSkinTone" />
+            <button id="marineSkinToneAuto" class="skinViewerAnim" selected>
+              <%- lang('settings.marineSkinToneAuto') %>
+            </button>
+          </div>
+          <div id="marineOutfits"></div>
+          <div id="marineActions">
+            <button class="settingsFileSelButton" id="marineApply" disabled>
+              <%- lang('settings.marineApply') %>
+            </button>
+            <button class="settingsFileSelButton" id="marineDownload" disabled>
+              <%- lang('settings.marineDownload') %>
+            </button>
+          </div>
+          <div id="marineMessage" class="settingsFieldDesc"></div>
+        </div>
+        </div>
       </div>
     </div>
     <div id="settingsTabMinecraft" class="settingsTab" style="display: none">
@@ -226,6 +295,22 @@
         <div class="settingsFieldRight">
           <label class="toggleSwitch">
             <input type="checkbox" cValue="LaunchDetached" />
+            <span class="toggleSwitchSlider"></span>
+          </label>
+        </div>
+      </div>
+      <div class="settingsFieldContainer">
+        <div class="settingsFieldLeft">
+          <span class="settingsFieldTitle"
+            ><%- lang('settings.performanceModeTitle') %></span
+          >
+          <span class="settingsFieldDesc"
+            ><%- lang('settings.performanceModeDesc') %></span
+          >
+        </div>
+        <div class="settingsFieldRight">
+          <label class="toggleSwitch">
+            <input type="checkbox" cValue="PerformanceMode" />
             <span class="toggleSwitchSlider"></span>
           </label>
         </div>
@@ -759,5 +844,7 @@
       </div>
     </div>
   </div>
+  <script src="./assets/js/scripts/skinpreview.js"></script>
+  <script src="./assets/js/scripts/marineskin.js"></script>
   <script src="./assets/js/scripts/settings.js"></script>
 </div>

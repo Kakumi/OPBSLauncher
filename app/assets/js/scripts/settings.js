@@ -1865,17 +1865,20 @@ window.fetch = async (...args) => {
 };
 
 /**
- * Upload a PNG image as a skin to a given URL with an access token.
- * @param {string} url The endpoint to POST to.
- * @param {string} accessToken The access token.
+ * Upload a PNG image as the skin of the selected account.
+ *
  * @param {File|Blob} pngImage The PNG image file or blob.
- * @returns {Promise<Response>} The fetch response.
+ * @param {boolean} save Whether to also keep it in "Mes skins".
+ * @param {HTMLElement} messageEl Where to show the progress / result message.
+ * @returns {Promise<boolean>} Whether the skin was applied.
  */
-async function uploadSkin(pngImage, save = true) {
-  settingsSkinErrorMessage.style.color = "white";
-  settingsSkinErrorMessage.innerHTML = Lang.queryJS(
-    "settings.skins.uploadSkinLoading"
-  );
+async function uploadSkin(
+  pngImage,
+  save = true,
+  messageEl = settingsSkinErrorMessage
+) {
+  messageEl.style.color = "white";
+  messageEl.innerHTML = Lang.queryJS("settings.skins.uploadSkinLoading");
   const user = ConfigManager.getSelectedAccount();
   if (user == null) {
     skinUploadLogger.log("No user selected for skin upload.");
@@ -1917,26 +1920,22 @@ async function uploadSkin(pngImage, save = true) {
   }
 
   if (response.status == 200) {
-    settingsSkinErrorMessage.innerHTML = Lang.queryJS(
-      "settings.skins.uploadSkinSuccess"
-    );
+    messageEl.innerHTML = Lang.queryJS("settings.skins.uploadSkinSuccess");
     updateSelectedAccount(user);
     populateAuthAccounts();
     populateAccountListings();
     populateUploadSkinPreview(user);
   } else {
-    settingsSkinErrorMessage.style.color = "red";
-    settingsSkinErrorMessage.innerHTML = Lang.queryJS(
-      "settings.skins.uploadSkinError"
-    );
+    messageEl.style.color = "red";
+    messageEl.innerHTML = Lang.queryJS("settings.skins.uploadSkinError");
     // Reason sent by the website (expired session, no linked account, invalid
     // PNG...), added as text so it cannot inject HTML.
     const reason = response.data?.message;
     if (reason) {
-      settingsSkinErrorMessage.appendChild(document.createElement("br"));
-      settingsSkinErrorMessage.appendChild(document.createTextNode(reason));
+      messageEl.appendChild(document.createElement("br"));
+      messageEl.appendChild(document.createTextNode(reason));
     }
-    settingsSkinErrorMessage.style.display = "block";
+    messageEl.style.display = "block";
     skinUploadLogger.error(
       `Erreur lors de l'upload : ${response.status} ${
         reason ?? response.statusText ?? ""
@@ -1961,6 +1960,93 @@ async function uploadSkin(pngImage, save = true) {
     fs.writeFileSync(filePath, buffer);
     initSkins();
   }
+
+  return response.status == 200;
+}
+
+// Capes: the section only shows when capes are enabled on the website
+// (Skin API settings), as told by the "opbs-launcher" plugin.
+const settingsCapeContainer = document.getElementById("settingsCapeContainer");
+const settingsCapeMessage = document.getElementById("settingsCapeMessage");
+const capeUploadInput = document.getElementById("settingsCapeUpload");
+document.getElementById("settingsCapeUploadBtn").onclick = () =>
+  capeUploadInput.click();
+capeUploadInput.onchange = async (e) => {
+  const file = e.target.files[0];
+  e.target.value = ""; // Allows sending the same file again.
+  if (file != null) {
+    await uploadCape(file);
+  }
+};
+
+(async () => {
+  try {
+    const res = await fetch("https://opbluesea.fr/api/opbs-launcher/features");
+    const features = await res.json();
+    if (res.ok && features.capes) {
+      settingsCapeContainer.style.display = "";
+    }
+  } catch (err) {
+    // Website unreachable: no cape section.
+  }
+})();
+
+/**
+ * Upload a PNG cape for the selected account, authenticated with its
+ * Minecraft session like the skin upload.
+ *
+ * @param {File|Blob} pngImage
+ */
+async function uploadCape(pngImage) {
+  settingsCapeMessage.style.color = "white";
+  settingsCapeMessage.textContent = Lang.queryJS(
+    "settings.skins.uploadSkinLoading"
+  );
+  if (ConfigManager.getSelectedAccount() == null) {
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("cape", pngImage);
+
+  let response;
+  if (!(await AuthManager.validateSelected())) {
+    response = {
+      status: 401,
+      data: {
+        message:
+          "Session Minecraft expirée, déconnecte puis reconnecte ton compte.",
+      },
+    };
+  } else {
+    try {
+      response = await axios.post(
+        "https://opbluesea.fr/api/opbs-launcher/cape",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${
+              ConfigManager.getSelectedAccount().accessToken
+            }`,
+          },
+        }
+      );
+    } catch (err) {
+      response = err.response ?? { status: 0, statusText: err.message };
+    }
+  }
+
+  if (response.status == 200) {
+    settingsCapeMessage.textContent = Lang.queryJS(
+      "settings.skins.uploadCapeSuccess"
+    );
+    SkinPreview.showAccount(ConfigManager.getSelectedAccount());
+  } else {
+    settingsCapeMessage.style.color = "red";
+    settingsCapeMessage.textContent = `${Lang.queryJS(
+      "settings.skins.uploadCapeError"
+    )} ${response.data?.message ?? response.statusText ?? ""}`;
+  }
 }
 
 const skinFolder = path.join(__dirname, "assets", "images", "skins");
@@ -1980,10 +2066,13 @@ async function initSkins() {
       })
     : [];
 
-  const defaultDiv = await createMicrosoftSkin(
-    ConfigManager.getSelectedAccount()
-  );
-  skinsWrapper.appendChild(defaultDiv);
+  // No account yet on first launch.
+  if (ConfigManager.getSelectedAccount() != null) {
+    const defaultDiv = await createMicrosoftSkin(
+      ConfigManager.getSelectedAccount()
+    );
+    skinsWrapper.appendChild(defaultDiv);
+  }
 
   // officialSkins
   //   .map((file) => path.join(skinFolder, file))
@@ -2011,6 +2100,18 @@ function createFileFromDisk(absolutePath, filename = "skin.png") {
   }
 }
 
+/**
+ * Highlight the skin of the list currently shown in the 3D preview.
+ *
+ * @param {HTMLElement} skinDiv The .skinHead element.
+ */
+function markSkinPreviewing(skinDiv) {
+  document
+    .querySelectorAll(".skinHead.previewing")
+    .forEach((el) => el.classList.remove("previewing"));
+  skinDiv.classList.add("previewing");
+}
+
 function createSkinCanvas(imageSrc, size = 64, canDelete = false) {
   const div = document.createElement("div");
   div.className = "skinHead";
@@ -2034,6 +2135,16 @@ function createSkinCanvas(imageSrc, size = 64, canDelete = false) {
     ctx.drawImage(skin, 40, 8, 8, 8, 0, 0, 8 * scale, 8 * scale);
   };
 
+  // Click on the head: 3D preview, without applying the skin.
+  canvas.title = Lang.queryJS("settings.skins.clickToPreview");
+  canvas.onclick = () => {
+    const dataUrl = `data:image/png;base64,${fs
+      .readFileSync(imageSrc)
+      .toString("base64")}`;
+    markSkinPreviewing(div);
+    SkinPreview.preview(dataUrl, Lang.queryJS("settings.skins.previewSkin"));
+  };
+
   div.appendChild(canvas);
 
   const button = document.createElement("button");
@@ -2049,7 +2160,18 @@ function createSkinCanvas(imageSrc, size = 64, canDelete = false) {
     const deleteButton = document.createElement("button");
     deleteButton.className = "settingsFileRedButton";
     deleteButton.innerHTML = Lang.queryJS("settings.skins.deleteSkin");
+    // Two clicks needed, so a skin is never deleted by a missed click.
+    let confirmTimer = null;
     deleteButton.onclick = async () => {
+      if (confirmTimer == null) {
+        deleteButton.innerHTML = Lang.queryJS("settings.skins.confirmDelete");
+        confirmTimer = setTimeout(() => {
+          confirmTimer = null;
+          deleteButton.innerHTML = Lang.queryJS("settings.skins.deleteSkin");
+        }, 3000);
+        return;
+      }
+      clearTimeout(confirmTimer);
       fs.unlinkSync(imageSrc);
       initSkins();
     };
@@ -2064,6 +2186,16 @@ async function createMicrosoftSkin(user) {
   div.className = "skinHead";
   const img = document.createElement("img");
   img.src = `https://mineskin.eu/helm/${user.displayName}/64`;
+
+  // Click on the head: 3D preview of the Microsoft skin, without applying it.
+  img.title = Lang.queryJS("settings.skins.clickToPreview");
+  img.onclick = () => {
+    markSkinPreviewing(div);
+    SkinPreview.preview(
+      `https://mineskin.eu/skin/${encodeURIComponent(user.displayName)}`,
+      Lang.queryJS("settings.skins.microsoftSkin")
+    );
+  };
 
   div.appendChild(img);
 

@@ -29,6 +29,8 @@ const { status } = require("minecraft-server-util");
 // Internal Requirements
 const DiscordWrapper = require("./assets/js/discordwrapper");
 const ProcessBuilder = require("./assets/js/processbuilder");
+const PerformanceMode = require("./assets/js/performancemode");
+const CrashReport = require("./assets/js/crashreport");
 const crypto = require("crypto");
 const { stringify } = require("querystring");
 
@@ -158,12 +160,11 @@ document.getElementById("avatarOverlay").onclick = async (e) => {
 };
 
 function populateUploadSkinPreview(user) {
-  const preview = document.getElementById("uploadSkinCurrentPreview");
-  // Used by the error handler in uicore.js if the OPBS skin API is unavailable.
-  preview.dataset.skinFallback = `https://mineskin.eu/armor/body/${user.displayName}/150`;
-  preview.src = `https://opbluesea.fr/api/skin-api/avatars/combo/${
-    user.displayName
-  }?v=${Date.now()}`;
+  // 3D preview of the Appearance tab (skinpreview.js), back on the current skin.
+  document
+    .querySelectorAll(".skinHead.previewing")
+    .forEach((el) => el.classList.remove("previewing"));
+  SkinPreview.showAccount(user);
 }
 
 // Bind selected account
@@ -334,6 +335,66 @@ function showLaunchFailure(title, desc) {
   setOverlayHandler(null);
   toggleOverlay(true);
   toggleLaunchArea(false);
+}
+
+/**
+ * The game closed with an error: offer to send the crash log to the staff
+ * (through the website, which posts it on a staff Discord channel).
+ *
+ * @param {string} instanceDir The instance folder of the server.
+ * @param {number} launchedAt When the game was launched (ms timestamp).
+ * @param {number} exitCode Exit code of the game.
+ * @param {string} serverName Name of the server profile.
+ */
+function offerCrashReport(instanceDir, launchedAt, exitCode, serverName) {
+  const log = CrashReport.findCrashLog(instanceDir, launchedAt);
+  if (log == null) {
+    return;
+  }
+  const escape = (text) =>
+    String(text).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+  const title = Lang.queryJS("landing.crashReport.title");
+
+  setOverlayContent(
+    title,
+    Lang.queryJS("landing.crashReport.desc"),
+    Lang.queryJS("landing.crashReport.send"),
+    Lang.queryJS("landing.crashReport.ignore"),
+  );
+  setDismissHandler(null);
+  setOverlayHandler(async () => {
+    setOverlayContent(
+      title,
+      Lang.queryJS("landing.crashReport.sending"),
+      Lang.queryJS("landing.crashReport.sending"),
+    );
+    setOverlayHandler(() => {}); // No double send.
+
+    // The site checks the Minecraft session with Mojang: refresh it if expired.
+    const sessionOk = await AuthManager.validateSelected();
+    const result = sessionOk
+      ? await CrashReport.send({
+          accessToken: ConfigManager.getSelectedAccount().accessToken,
+          serverName,
+          launcherVersion: remote.app.getVersion(),
+          exitCode,
+          log,
+        })
+      : { ok: false, message: Lang.queryJS("landing.crashReport.sessionExpired") };
+
+    setOverlayContent(
+      title,
+      result.ok
+        ? Lang.queryJS("landing.crashReport.sent")
+        : `${Lang.queryJS("landing.crashReport.failed")}<br>${escape(
+            result.message ?? "",
+          )}`,
+      Lang.queryJS("landing.launch.okay"),
+    );
+    setOverlayHandler(null);
+    toggleOverlay(true);
+  });
+  toggleOverlay(true, true);
 }
 
 /* System (Java) Scan */
@@ -710,6 +771,14 @@ async function dlAsync(login = true) {
     };
 
     try {
+      // Lighter graphics for small PCs (Settings > Minecraft > Performance mode).
+      const instanceDir = path.join(
+        ConfigManager.getInstanceDirectory(),
+        serv.rawServer.id,
+      );
+      PerformanceMode.apply(instanceDir, ConfigManager.getPerformanceMode());
+      const launchedAt = Date.now();
+
       // Build Minecraft process.
       proc = pb.build();
 
@@ -751,6 +820,12 @@ async function dlAsync(login = true) {
             server: serv.rawServer.name,
           }),
         );
+
+        // Closed with an error (0 = normal quit, null = killed by a signal).
+        if (code != null && code !== 0) {
+          loggerLaunchSuite.warn(`Game exited with code ${code}.`);
+          offerCrashReport(instanceDir, launchedAt, code, serv.rawServer.name);
+        }
       });
     } catch (err) {
       loggerLaunchSuite.error("Error during launch", err);

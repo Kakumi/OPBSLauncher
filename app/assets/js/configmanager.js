@@ -96,6 +96,7 @@ const DEFAULT_CONFIG = {
       fullscreen: false,
       autoConnect: true,
       launchDetached: true,
+      performanceMode: false,
     },
     launcher: {
       allowPrerelease: false,
@@ -819,6 +820,28 @@ exports.getLaunchDetached = function (def = false) {
  */
 exports.setLaunchDetached = function (launchDetached) {
   config.settings.game.launchDetached = launchDetached;
+};
+
+/**
+ * Check if the performance mode (lighter graphics for small PCs) is enabled.
+ *
+ * @param {boolean} def Optional. If true, the default value will be returned.
+ * @returns {boolean} Whether or not the performance mode is enabled.
+ */
+exports.getPerformanceMode = function (def = false) {
+  return !def
+    ? config.settings.game.performanceMode ??
+        DEFAULT_CONFIG.settings.game.performanceMode
+    : DEFAULT_CONFIG.settings.game.performanceMode;
+};
+
+/**
+ * Enable or disable the performance mode.
+ *
+ * @param {boolean} performanceMode Whether or not the performance mode is enabled.
+ */
+exports.setPerformanceMode = function (performanceMode) {
+  config.settings.game.performanceMode = performanceMode;
 };
 
 // Launcher Settings

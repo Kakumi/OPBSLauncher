@@ -118,14 +118,17 @@ button::-webkit-focus-inner {
   -webkit-app-region: drag;
 }
 
-/* Frame logo (windows only). */
+/* Left part of the (transparent) title bar: holds the current track. */
 #frameTitleDock {
-  padding: 0px 10px;
+  padding: 0px 8px;
+  display: flex;
+  align-items: center;
+  min-width: 0;
 }
-#frameTitleText {
-  font-size: 14px;
-  font-family: "Avenir Medium";
-  letter-spacing: 0.5px;
+
+/* Window buttons stay readable without the dark title bar. */
+.frameButton svg {
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
 }
 
 /* Windows frame button dock. */
@@ -4079,16 +4082,203 @@ input:checked + .toggleSwitchSlider:before {
   display: flex;
   flex-direction: column;
   justify-items: center;
+  gap: 4px;
 }
 
-.fileUploadSkinContainerPreview {
-  width: 75%;
+/* "Choisir" / "Supprimer" under a skin: separated, to avoid missed clicks. */
+.skinHead > .settingsFileSelButton,
+.skinHead > .settingsFileRedButton {
+  border-radius: 3px;
+  padding: 2px 5px;
+}
+.skinHead > .settingsFileRedButton {
+  margin-top: 6px;
+}
+
+/* Clicking a head of the list previews it in 3D. */
+.skinHead > canvas,
+.skinHead > img {
+  width: 64px;
+  height: 64px;
+  cursor: pointer;
+  border-radius: 6px;
+  image-rendering: pixelated;
+  transition: transform 0.15s ease;
+}
+.skinHead > canvas:hover,
+.skinHead > img:hover {
+  transform: scale(1.06);
+}
+.skinHead.previewing > canvas,
+.skinHead.previewing > img {
+  outline: 2px solid #22a8f4;
+  outline-offset: 2px;
+}
+
+/* Appearance tab: 3D preview on the left, upload + skin list on the right. */
+#skinStudio {
   display: flex;
-  flex-direction: row;
+  align-items: flex-start;
+  gap: 24px;
+  width: 92%;
+}
+
+#skinViewerPanel {
+  flex-shrink: 0;
+  width: 240px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
-  padding-bottom: 20px;
+  gap: 8px;
+  padding: 6px 0 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: radial-gradient(
+    ellipse at 50% 40%,
+    rgba(34, 168, 244, 0.22) 0%,
+    rgba(0, 0, 0, 0.45) 70%
+  );
+}
+
+#skinViewerCanvas {
+  cursor: grab;
+}
+#skinViewerCanvas:active {
+  cursor: grabbing;
+}
+
+#skinViewerCaption {
+  font-size: 12px;
+  opacity: 0.85;
+  text-align: center;
+  padding: 0 10px;
+}
+
+#skinViewerBack {
+  background: none;
+  color: #22a8f4;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+#skinViewerBack:hover {
+  text-decoration: underline;
+}
+
+#skinViewerAnimations {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 6px;
+}
+
+.skinViewerAnim {
+  font: inherit;
+  font-size: 11px;
+  color: white;
+  padding: 3px 8px;
+  white-space: nowrap;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.skinViewerAnim:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+.skinViewerAnim[selected] {
+  background: #22a8f4;
+  border-color: #22a8f4;
+}
+
+#skinSidePanel {
+  flex-grow: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+#skinListContainer,
+#settingsCapeContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+/* style="display: none" until shown by the scripts. */
+#marineStudio[style*="none"],
+#settingsCapeContainer[style*="none"] {
+  display: none;
+}
+
+/* "Skin Marine" studio (marineskin.js): a card of its own. */
+#marineStudio {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border: 1px solid rgba(34, 168, 244, 0.45);
+  border-radius: 10px;
+  background: linear-gradient(
+    160deg,
+    rgba(20, 60, 120, 0.35) 0%,
+    rgba(0, 0, 0, 0.3) 100%
+  );
+}
+
+#marineToneRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+#marineSkinTone {
+  width: 32px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+}
+
+#marineOutfits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 4px;
+}
+
+#marineActions {
+  display: flex;
+  gap: 8px;
+  padding-top: 4px;
+}
+#marineActions button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Outfit thumbnails are a full front view, not just a head. */
+.outfitItem {
+  align-items: center;
+  width: 80px;
+}
+.skinHead.outfitItem > canvas {
+  width: 48px;
+  height: 96px;
+  border-radius: 4px;
+}
+.outfitName {
+  font-size: 10px;
+  line-height: 12px;
+  opacity: 0.85;
+  text-align: center;
+  max-width: 80px;
+  min-height: 36px; /* Up to three lines, so the grid stays aligned. */
 }
 
 /* Icone appli*/
@@ -4101,7 +4291,7 @@ input:checked + .toggleSwitchSlider:before {
 
 /* Stationary image for the spinner. */
 #appIconCenterImage {
-  width: 50%;
+  width: 57%;
   height: auto;
   filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.2));
   animation: logoBreathing 4s ease-in-out infinite;
@@ -4119,21 +4309,72 @@ input:checked + .toggleSwitchSlider:before {
   }
 }
 
-#musicInfo {
-  position: absolute;
-  top: 0;
-  left: 0;
-  margin: 5px;
+/* Music controls in the title bar (see frameMusic.ejs). */
+#musicBar {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
+  min-width: 0;
+  padding-top: 3px;
+}
+
+/* Quick mute button: clickable although the bar is a window drag area. */
+#musicToggle {
+  -webkit-app-region: no-drag;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+  opacity: 0.85;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+#musicToggle:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.15);
+}
+#musicToggle svg {
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.9));
+}
+#musicToggle .musicOff,
+#musicToggle[muted] .musicOn {
+  display: none;
+}
+#musicToggle[muted] .musicOff {
+  display: block;
+}
+
+/* Current track. */
+#musicInfo {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  min-width: 0;
 }
 
 #musicIcon {
-  width: 25px;
+  width: 20px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.8));
   animation: logoBreathing 4s ease-in-out infinite;
 }
 
 #musicText {
-  font-size: 14px;
+  font-size: 14.5px;
+  letter-spacing: 0.3px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#frameContentDarwin #musicBar {
+  margin-left: 10px;
 }

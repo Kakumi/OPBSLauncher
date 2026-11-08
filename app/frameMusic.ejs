@@ -1,0 +1,20 @@
+<%# Music controls in the (transparent) title bar: mute button + current track.
+    Handled by setupMusic() / updateMusic() in uibinder.js. %>
+<div id="musicBar">
+    <button id="musicToggle" tabIndex="-1">
+        <svg class="musicOn" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="#ffffff"></polygon>
+            <path d="M15.5 8.5a5 5 0 0 1 0 7"></path>
+            <path d="M19 5a10 10 0 0 1 0 14"></path>
+        </svg>
+        <svg class="musicOff" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5" fill="#ffffff"></polygon>
+            <line x1="22" y1="9" x2="16" y2="15"></line>
+            <line x1="16" y1="9" x2="22" y2="15"></line>
+        </svg>
+    </button>
+    <div id="musicInfo">
+        <img id="musicIcon" src="assets/images/sound.gif" />
+        <span id="musicText"></span>
+    </div>
+</div>

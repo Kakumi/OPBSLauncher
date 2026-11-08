@@ -1,6 +1,6 @@
 {
   "name": "opbs",
-  "version": "2.5.2",
+  "version": "2.5.3",
   "productName": "One Piece Blue Sea",
   "description": "Officiel OPBS Launcher",
   "author": "Damien Brebion (https://github.com/Kakumi)",
@@ -40,6 +40,7 @@
     "minecraft-server-util": "^5.4.4",
     "node-fetch": "^2.7.0",
     "semver": "^7.6.3",
+    "skinview3d": "3.4.2",
     "toml": "^3.0.0"
   },
   "devDependencies": {
