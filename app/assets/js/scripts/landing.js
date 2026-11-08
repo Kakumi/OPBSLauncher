@@ -979,15 +979,6 @@ Array.from(document.querySelectorAll(".mediaURL[data-feed]")).forEach(
   },
 );
 
-// Wiki page list.
-document.getElementById("newsArticleSelect").onchange = (e) => {
-  const index = parseInt(e.target.value);
-  if (newsArr != null && newsArr[index] != null) {
-    displayArticle(newsArr[index], index + 1);
-    newsArticleContentScrollable.scrollTop = 0;
-  }
-};
-
 /**
  * Open the news panel on a tab, or close it if it is open.
  *
@@ -1163,7 +1154,7 @@ async function initNews(feed = currentFeed) {
   }
 
   newsArr = news?.articles || null;
-  fillWikiSelect(feed);
+  fillWikiNav(feed);
 
   if (newsArr == null) {
     // News Loading Failed
@@ -1259,40 +1250,283 @@ async function initNews(feed = currentFeed) {
       return;
     }
     displayArticle(newsArr[0], 1);
+    if (feed === "vote") {
+      setupVoteCards();
+    }
+    const shown = $("#newsContent").fadeIn(250).promise();
+    // Once displayed (a hidden element keeps its old scroll position).
     newsArticleContentScrollable.scrollTop = 0;
-    await $("#newsContent").fadeIn(250).promise();
+    await shown;
   }
 }
 
+/*
+ * Vote tab: voting from the launcher. The site cards of the feed carry
+ * data-vote-site (site id) and data-vote-target (vote site URL, may contain
+ * {player}). A click opens the vote site in the browser, then the website
+ * ("opbs-launcher" plugin) is asked every 5 seconds until the vote site has
+ * seen the vote, and the reward is given: same rules as the website vote page.
+ * Sites already voted show the time left before the next vote.
+ */
+const VOTE_POLL_DELAY = 5000;
+const VOTE_POLL_TRIES = 36; // 3 minutes
+let voteTicker = null;
+const votePolls = new Map(); // site id -> timeout of its next check
+
 /**
- * The "wiki" tab has many pages: a list grouped by category (titles are
- * "Category › Page") lets the player pick one. Hidden on the other tabs.
+ * Request to the website vote API of the plugin, over IPv4: the vote sites
+ * check the vote by IP, the website vote page does the same (IPv4 adapter).
+ *
+ * @param {string} method "GET" or "POST".
+ * @param {string} path Path after OPBS_FEED_BASE.
+ * @param {Object} body Optional. JSON body.
+ * @returns {Promise<{status: number, json: Object|null}>}
+ */
+function voteApi(method, path, body) {
+  return new Promise((resolve, reject) => {
+    const url = new URL(OPBS_FEED_BASE + path);
+    const lib = url.protocol === "http:" ? require("http") : require("https");
+    const data = body ? JSON.stringify(body) : null;
+    const headers = {
+      Accept: "application/json",
+      "User-Agent": navigator.userAgent,
+    };
+    if (data) {
+      headers["Content-Type"] = "application/json";
+      headers["Content-Length"] = Buffer.byteLength(data);
+    }
+    const req = lib.request(
+      url,
+      { method, family: 4, timeout: 20000, headers },
+      (res) => {
+        let raw = "";
+        res.setEncoding("utf8");
+        res.on("data", (chunk) => (raw += chunk));
+        res.on("end", () => {
+          let json = null;
+          try {
+            json = JSON.parse(raw);
+          } catch (err) {
+            // Not JSON (error page): json stays null.
+          }
+          resolve({ status: res.statusCode, json });
+        });
+      },
+    );
+    req.on("timeout", () => req.destroy(new Error("timeout")));
+    req.on("error", reject);
+    if (data) {
+      req.write(data);
+    }
+    req.end();
+  });
+}
+
+/**
+ * Prepare the vote site cards of the shown vote article: time left before
+ * each site can be voted again, for the selected account.
+ */
+async function setupVoteCards() {
+  const account = ConfigManager.getSelectedAccount();
+  const cards = Array.from(
+    newsArticleContentScrollable.querySelectorAll("[data-vote-site]"),
+  );
+  if (account == null || cards.length === 0) {
+    return;
+  }
+  cards.forEach((card) => {
+    if (card.querySelector(".voteCardState") == null) {
+      const state = document.createElement("div");
+      state.className = "voteCardState";
+      card.appendChild(state);
+    }
+  });
+  updateVoteCards();
+  if (voteTicker == null) {
+    voteTicker = setInterval(updateVoteCards, 1000);
+  }
+
+  let res = null;
+  try {
+    res = await voteApi(
+      "GET",
+      `vote/status/${encodeURIComponent(account.displayName)}?uuid=${encodeURIComponent(account.uuid)}`,
+    );
+  } catch (err) {
+    loggerLanding.warn("Vote status unavailable:", err.message);
+  }
+  if (res != null && res.status === 200 && res.json?.sites) {
+    for (const card of cards) {
+      card.dataset.voteNext = res.json.sites[card.dataset.voteSite] ?? "";
+    }
+  } else if (res?.json?.message) {
+    showVoteMessage(res.json.message, "error");
+  }
+  updateVoteCards();
+}
+
+/**
+ * Refresh the state line of every vote card (called every second).
+ */
+function updateVoteCards() {
+  const cards = newsArticleContentScrollable.querySelectorAll(
+    "[data-vote-site]",
+  );
+  if (currentFeed !== "vote" || cards.length === 0) {
+    clearInterval(voteTicker);
+    voteTicker = null;
+    return;
+  }
+  cards.forEach((card) => {
+    const state = card.querySelector(".voteCardState");
+    if (state == null) {
+      return;
+    }
+    const checking = votePolls.has(card.dataset.voteSite);
+    const left = Number(card.dataset.voteNext || 0) - Date.now();
+    card.toggleAttribute("checking", checking);
+    card.toggleAttribute("cooldown", !checking && left > 0);
+    if (checking) {
+      state.textContent = "Vérification du vote…";
+    } else if (left > 0) {
+      const s = Math.ceil(left / 1000);
+      const pad = (n) => String(n).padStart(2, "0");
+      state.textContent = `Revote dans ${pad(Math.floor(s / 3600))}:${pad(
+        Math.floor((s % 3600) / 60),
+      )}:${pad(s % 60)}`;
+    } else {
+      state.textContent = "Clique pour voter";
+    }
+  });
+}
+
+/**
+ * Message above the vote site cards (reward received, error...).
+ *
+ * @param {string} message Text from the website (may contain simple HTML).
+ * @param {string} level "success" or "error".
+ */
+function showVoteMessage(message, level) {
+  const cards = newsArticleContentScrollable.querySelector("[data-vote-site]");
+  if (cards == null) {
+    return;
+  }
+  let box = document.getElementById("voteFeedMessage");
+  if (box == null) {
+    box = document.createElement("div");
+    box.id = "voteFeedMessage";
+    cards.parentElement.parentElement.insertBefore(box, cards.parentElement);
+  }
+  box.setAttribute("level", level);
+  box.textContent = $("<div>").html(message).text();
+}
+
+/**
+ * Ask the website, every 5 seconds, whether the vote site has seen the vote.
+ *
+ * @param {string} siteId The vote site id.
+ * @param {Object} account The account who votes.
+ * @param {number} attempt Number of checks already done.
+ */
+function pollVote(siteId, account, attempt) {
+  votePolls.set(
+    siteId,
+    setTimeout(async () => {
+      let res = null;
+      try {
+        res = await voteApi("POST", `vote/${siteId}/done`, {
+          player: account.displayName,
+          uuid: account.uuid,
+        });
+      } catch (err) {
+        loggerLanding.warn("Vote check failed:", err.message);
+      }
+      if (res?.status === 200 && res.json?.status === "pending") {
+        if (attempt + 1 < VOTE_POLL_TRIES) {
+          pollVote(siteId, account, attempt + 1);
+          return;
+        }
+        votePolls.delete(siteId);
+        showVoteMessage(
+          "Le site de vote n'a pas encore vu ton vote. Si tu as bien voté, reclique sur le site dans un moment.",
+          "error",
+        );
+      } else {
+        votePolls.delete(siteId);
+        const ok = res?.status === 200 && res.json?.message;
+        showVoteMessage(
+          res?.json?.message ??
+            "Vérification du vote impossible pour le moment, réessaie plus tard.",
+          ok ? "success" : "error",
+        );
+      }
+      setupVoteCards();
+    }, VOTE_POLL_DELAY),
+  );
+  updateVoteCards();
+}
+
+// A click on a vote site card opens the vote site for the selected account and
+// starts checking the vote (instead of opening the website vote page).
+newsArticleContentScrollable.addEventListener("click", (e) => {
+  const card = e.target.closest("[data-vote-site]");
+  const account = ConfigManager.getSelectedAccount();
+  if (card == null || currentFeed !== "vote" || account == null) {
+    return;
+  }
+  e.preventDefault();
+  e.stopPropagation();
+  const siteId = card.dataset.voteSite;
+  if (card.hasAttribute("cooldown") || votePolls.has(siteId)) {
+    return;
+  }
+  document.getElementById("voteFeedMessage")?.remove();
+  shell.openExternal(
+    card.dataset.voteTarget.replace(
+      "{player}",
+      encodeURIComponent(account.displayName),
+    ),
+  );
+  pollVote(siteId, account, 0);
+});
+
+/**
+ * The "wiki" tab has many pages: the left column lists them by category
+ * (titles are "Category › Page") instead of showing the title. Hidden on the
+ * other tabs.
  *
  * @param {string} feed The loaded tab.
  */
-function fillWikiSelect(feed) {
-  const select = document.getElementById("newsArticleSelect");
-  select.innerHTML = "";
-  if (feed !== "wiki" || newsArr == null || newsArr.length === 0) {
-    select.style.display = "none";
+function fillWikiNav(feed) {
+  const nav = document.getElementById("newsWikiNav");
+  nav.replaceChildren();
+  const isWiki = feed === "wiki" && newsArr != null && newsArr.length > 0;
+  newsContent.toggleAttribute("wiki", isWiki);
+  if (!isWiki) {
     return;
   }
-  const groups = new Map();
+  let lastCategory = null;
   newsArr.forEach((article, i) => {
     const parts = article.title.split(" › ");
     const category = parts.length > 1 ? parts.shift() : "";
-    if (!groups.has(category)) {
-      const group = document.createElement("optgroup");
-      group.label = category;
-      groups.set(category, group);
-      select.appendChild(group);
+    if (category !== lastCategory) {
+      lastCategory = category;
+      const header = document.createElement("div");
+      header.className = "newsWikiCategory";
+      header.textContent = category;
+      nav.appendChild(header);
     }
-    const option = document.createElement("option");
-    option.value = String(i);
-    option.textContent = parts.join(" › ");
-    groups.get(category).appendChild(option);
+    const page = document.createElement("button");
+    page.className = "newsWikiPage";
+    page.dataset.index = String(i);
+    page.textContent = parts.join(" › ");
+    page.onclick = () => {
+      page.blur();
+      displayArticle(newsArr[i], i + 1);
+      newsArticleContentScrollable.scrollTop = 0;
+    };
+    nav.appendChild(page);
   });
-  select.style.display = "";
 }
 
 /**
@@ -1336,7 +1570,14 @@ function displayArticle(articleObject, index) {
   newsArticleDate.innerHTML = articleObject.date;
   // No date on the "vote" tab (the page is always up to date).
   newsArticleDate.style.display = articleObject.date ? "" : "none";
-  document.getElementById("newsArticleSelect").value = String(index - 1);
+  // Wiki tab: highlight the shown page in the list.
+  const navPages = document.querySelectorAll(".newsWikiPage");
+  navPages.forEach((p) =>
+    p.toggleAttribute("active", p.dataset.index === String(index - 1)),
+  );
+  document
+    .querySelector(".newsWikiPage[active]")
+    ?.scrollIntoView({ block: "nearest" });
   newsArticleComments.innerHTML = articleObject.comments;
   newsArticleComments.href = articleObject.commentsLink;
   // The changelog feed has no comments: hide the counter instead of "0".
