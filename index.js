@@ -23,6 +23,10 @@ const LangLoader = require("./app/assets/js/langloader");
 // Setup Lang
 LangLoader.setupLanguage();
 
+// The launcher is in French: Chromium too (Accept-Language), so the Microsoft
+// login and logout pages are in French, as are the native menus and dialogs.
+app.commandLine.appendSwitch("lang", "fr-FR");
+
 // Setup auto updater.
 function initAutoUpdater(event, data) {
   if (data) {

@@ -108,7 +108,17 @@
       <div id="skinStudio">
         <!-- 3D preview (skinpreview.js): current skin, or a skin of the list being previewed. -->
         <div id="skinViewerPanel">
+          <%# Pause / restart the rotation (skinpreview.js). %>
+          <button id="skinViewerRotate" title="<%- lang('settings.skinViewerRotate') %>">
+            <svg class="rotatePause" viewBox="0 0 24 24"><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></svg>
+            <svg class="rotatePlay" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.4-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z" /></svg>
+          </button>
           <canvas id="skinViewerCanvas"></canvas>
+          <%# Colour picker: the skin seen flat from the front, big pixels (skinpreview.js). %>
+          <div id="skinPicker">
+            <canvas id="skinPickerCanvas" width="16" height="32"></canvas>
+            <div id="skinPickerHover"></div>
+          </div>
           <div id="skinViewerCaption"></div>
           <button id="skinViewerBack" style="display: none">
             <%- lang('settings.skinViewerBack') %>
@@ -210,6 +220,10 @@
           <div id="marineToneRow">
             <span><%- lang('settings.marineSkinTone') %></span>
             <input type="color" id="marineSkinTone" />
+            <button id="marineSkinTonePick" class="skinViewerAnim" title="<%- lang('settings.marineSkinTonePickTitle') %>">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 4.6a2.2 2.2 0 0 0-3.1 0l-2.6 2.6-1-1-1.4 1.4 1 1-7.2 7.2V19h3.3l7.2-7.2 1 1 1.4-1.4-1-1 2.4-2.6a2.2 2.2 0 0 0 0-3.2zM7.5 17.5H6.5v-1l7-7 1 1z" /></svg>
+              <%- lang('settings.marineSkinTonePick') %>
+            </button>
             <button id="marineSkinToneAuto" class="skinViewerAnim" selected>
               <%- lang('settings.marineSkinToneAuto') %>
             </button>
@@ -224,6 +238,10 @@
             </button>
           </div>
           <div id="marineMessage" class="settingsFieldDesc"></div>
+          <div id="marineHelp">
+            <%- lang('settings.marineHelp') %>
+            <a href="https://discord.com/channels/711247554112651266/711247557380014243"><%- lang('settings.marineHelpLink') %></a>
+          </div>
         </div>
         </div>
       </div>

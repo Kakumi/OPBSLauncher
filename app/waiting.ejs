@@ -1,8 +1,26 @@
 <div id="waitingContainer" style="display: none;">
     <div id="waitingContent">
-        <div class="waitingSpinner"></div>
-        <div id="waitingTextContainer">
-            <h2><%- lang('waiting.waitingText') %></h2>
+        <%# Same ship's wheel as the startup loader (app.ejs). %>
+        <svg class="opbsWheel" viewBox="-60 -60 120 120" aria-hidden="true">
+            <g class="loadWheelTurn">
+                <g id="waitSpoke">
+                    <line x1="0" y1="-15" x2="0" y2="-45" />
+                    <line class="loadHandle" x1="0" y1="-46" x2="0" y2="-53" />
+                </g>
+                <use href="#waitSpoke" transform="rotate(45)" />
+                <use href="#waitSpoke" transform="rotate(90)" />
+                <use href="#waitSpoke" transform="rotate(135)" />
+                <use href="#waitSpoke" transform="rotate(180)" />
+                <use href="#waitSpoke" transform="rotate(225)" />
+                <use href="#waitSpoke" transform="rotate(270)" />
+                <use href="#waitSpoke" transform="rotate(315)" />
+                <circle class="loadRim" r="36" />
+                <circle class="loadRim loadInner" r="15" />
+                <circle class="loadHub" r="6" />
+            </g>
+        </svg>
+        <div id="waitingTextContainer" class="loadText">
+            <%- lang('waiting.waitingText') %><span class="loadDot">.</span><span class="loadDot">.</span><span class="loadDot">.</span>
         </div>
     </div>
 </div>

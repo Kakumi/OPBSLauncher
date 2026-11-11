@@ -25,6 +25,7 @@ const MarineSkin = (() => {
   const grid = document.getElementById("marineOutfits");
   const toneInput = document.getElementById("marineSkinTone");
   const toneAuto = document.getElementById("marineSkinToneAuto");
+  const tonePick = document.getElementById("marineSkinTonePick");
   const applyButton = document.getElementById("marineApply");
   const downloadButton = document.getElementById("marineDownload");
   const message = document.getElementById("marineMessage");
@@ -509,9 +510,33 @@ const MarineSkin = (() => {
   };
 
   toneAuto.onclick = () => {
+    SkinPreview.cancelPick();
     toneOverride = null;
     refresh();
   };
+
+  // Eyedropper: pick the colour on the player's own skin (shown flat, big
+  // pixels, in the viewer). A second click cancels.
+  tonePick.onclick = () => {
+    tonePick.blur();
+    if (SkinPreview.isPicking()) {
+      SkinPreview.cancelPick();
+      return;
+    }
+    const started = SkinPreview.pickColor((rgb) => {
+      toneOverride = rgb;
+      refresh();
+    });
+    if (started) {
+      tonePick.setAttribute("selected", "");
+      showMessage("");
+    } else {
+      showMessage(Lang.queryJS("settings.skins.pickUnavailable"), true);
+    }
+  };
+  document.addEventListener("opbs:pickend", () => {
+    tonePick.removeAttribute("selected");
+  });
 
   applyButton.onclick = async () => {
     if (selected == null) {

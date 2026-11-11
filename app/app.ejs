@@ -99,7 +99,7 @@
       <div id="loadingContent">
         <%# Ship's wheel drawn in SVG (was loading.gif, blurry once scaled). %>
         <div id="loadSpinnerContainer">
-          <svg id="loadWheel" viewBox="-60 -60 120 120" aria-hidden="true">
+          <svg id="loadWheel" class="opbsWheel" viewBox="-60 -60 120 120" aria-hidden="true">
             <g class="loadWheelTurn">
               <g id="loadSpoke">
                 <line x1="0" y1="-15" x2="0" y2="-45" />
@@ -118,7 +118,7 @@
             </g>
           </svg>
         </div>
-        <div id="loadText">
+        <div id="loadText" class="loadText">
           <%- lang('landing.startupLoading') %><span class="loadDot">.</span><span class="loadDot">.</span><span class="loadDot">.</span>
         </div>
       </div>

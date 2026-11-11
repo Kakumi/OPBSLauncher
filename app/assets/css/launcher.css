@@ -966,66 +966,14 @@ body:has(#main[overlay]) #frameBar {
   background: rgba(0, 0, 0, 0.5);
 }
 
+/* Microsoft login wait: the same ship's wheel as the startup loader. */
 #waitingContent {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: 50%;
-  top: -10%;
   position: relative;
-}
-
-.waitingSpinner:before {
-  transform: rotateX(60deg) rotateY(45deg) rotateZ(45deg);
-  animation: 750ms rotateBefore infinite linear reverse;
-}
-.waitingSpinner:after {
-  transform: rotateX(240deg) rotateY(45deg) rotateZ(45deg);
-  animation: 750ms rotateAfter infinite linear;
-}
-.waitingSpinner:before,
-.waitingSpinner:after {
-  box-sizing: border-box;
-  content: "";
-  display: block;
-  position: fixed;
-  top: calc(50% - 5em);
-  /* left: 50%; */
-  margin-top: -5em;
-  margin-left: -5em;
-  width: 10em;
-  height: 10em;
-  transform-style: preserve-3d;
-  transform-origin: 50%;
-  transform: rotateY(50%);
-  perspective-origin: 50% 50%;
-  perspective: 340px;
-  background-size: 10em 10em;
-  background-image: url(data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiIHN0YW5kYWxvbmU9Im5vIj8+Cjxzdmcgd2lkdGg9IjI2NnB4IiBoZWlnaHQ9IjI5N3B4IiB2aWV3Qm94PSIwIDAgMjY2IDI5NyIgdmVyc2lvbj0iMS4xIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB4bWxuczpza2V0Y2g9Imh0dHA6Ly93d3cuYm9oZW1pYW5jb2RpbmcuY29tL3NrZXRjaC9ucyI+CiAgICA8dGl0bGU+c3Bpbm5lcjwvdGl0bGU+CiAgICA8ZGVzY3JpcHRpb24+Q3JlYXRlZCB3aXRoIFNrZXRjaCAoaHR0cDovL3d3dy5ib2hlbWlhbmNvZGluZy5jb20vc2tldGNoKTwvZGVzY3JpcHRpb24+CiAgICA8ZGVmcz48L2RlZnM+CiAgICA8ZyBpZD0iUGFnZS0xIiBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIiBza2V0Y2g6dHlwZT0iTVNQYWdlIj4KICAgICAgICA8cGF0aCBkPSJNMTcxLjUwNzgxMywzLjI1MDAwMDM4IEMyMjYuMjA4MTgzLDEyLjg1NzcxMTEgMjk3LjExMjcyMiw3MS40OTEyODIzIDI1MC44OTU1OTksMTA4LjQxMDE1NSBDMjE2LjU4MjAyNCwxMzUuODIwMzEgMTg2LjUyODQwNSw5Ny4wNjI0OTY0IDE1Ni44MDA3NzQsODUuNzczNDM0NiBDMTI3LjA3MzE0Myw3NC40ODQzNzIxIDc2Ljg4ODQ2MzIsODQuMjE2MTQ2MiA2MC4xMjg5MDY1LDEwOC40MTAxNTMgQy0xNS45ODA0Njg1LDIxOC4yODEyNDcgMTQ1LjI3NzM0NCwyOTYuNjY3OTY4IDE0NS4yNzczNDQsMjk2LjY2Nzk2OCBDMTQ1LjI3NzM0NCwyOTYuNjY3OTY4IC0yNS40NDkyMTg3LDI1Ny4yNDIxOTggMy4zOTg0Mzc1LDEwOC40MTAxNTUgQzE2LjMwNzA2NjEsNDEuODExNDE3NCA4NC43Mjc1ODI5LC0xMS45OTIyOTg1IDE3MS41MDc4MTMsMy4yNTAwMDAzOCBaIiBpZD0iUGF0aC0xIiBmaWxsPSIjZmZmZmZmIiBza2V0Y2g6dHlwZT0iTVNTaGFwZUdyb3VwIj48L3BhdGg+CiAgICA8L2c+Cjwvc3ZnPg==);
-}
-
-#waitingTextContainer {
-  position: fixed;
-  top: 50%;
-}
-
-@keyframes rotateBefore {
-  from {
-    transform: rotateX(60deg) rotateY(45deg) rotateZ(0deg);
-  }
-  to {
-    transform: rotateX(60deg) rotateY(45deg) rotateZ(-360deg);
-  }
-}
-
-@keyframes rotateAfter {
-  from {
-    transform: rotateX(240deg) rotateY(45deg) rotateZ(0deg);
-  }
-  to {
-    transform: rotateX(240deg) rotateY(45deg) rotateZ(360deg);
-  }
+  top: -4%;
 }
 
 /*******************************************************************************
@@ -4465,31 +4413,31 @@ input:checked + .toggleSwitchSlider:before {
 
 /* Ship's wheel (SVG, sharp at any size and screen scale). It turns like a
    helm: speeds up, slows down, a full turn every 3 seconds. */
-#loadWheel {
+.opbsWheel {
   width: 112px;
   height: 112px;
   overflow: visible;
   filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.45));
 }
-#loadWheel line,
-#loadWheel .loadRim {
+.opbsWheel line,
+.opbsWheel .loadRim {
   stroke: #ffffff;
   stroke-linecap: round;
   fill: none;
 }
-#loadWheel line {
+.opbsWheel line {
   stroke-width: 4.5;
 }
-#loadWheel .loadHandle {
+.opbsWheel .loadHandle {
   stroke-width: 9;
 }
-#loadWheel .loadRim {
+.opbsWheel .loadRim {
   stroke-width: 6;
 }
-#loadWheel .loadInner {
+.opbsWheel .loadInner {
   stroke-width: 4;
 }
-#loadWheel .loadHub {
+.opbsWheel .loadHub {
   fill: #ffffff;
 }
 .loadWheelTurn {
@@ -4506,7 +4454,7 @@ input:checked + .toggleSwitchSlider:before {
 }
 
 /* "Chargement..." under the wheel, the dots light up one after the other. */
-#loadText {
+.loadText {
   margin-top: 18px;
   font-size: 13px;
   font-weight: 800;
@@ -4613,6 +4561,9 @@ input:checked + .toggleSwitchSlider:before {
 }
 
 #skinViewerPanel {
+  /* Follows the scroll: the skin stays in view down to the Marine studio. */
+  position: sticky;
+  top: 12px;
   flex-shrink: 0;
   width: 240px;
   display: flex;
@@ -4641,6 +4592,92 @@ input:checked + .toggleSwitchSlider:before {
   opacity: 0.85;
   text-align: center;
   padding: 0 10px;
+}
+
+/* Pause / restart the rotation, top right of the viewer. */
+#skinViewerRotate {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  background: rgba(8, 20, 38, 0.55);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+#skinViewerRotate:hover {
+  background: rgba(56, 200, 193, 0.85);
+}
+#skinViewerRotate svg {
+  width: 13px;
+  height: 13px;
+  fill: #ffffff;
+}
+#skinViewerRotate .rotatePlay,
+#skinViewerRotate[paused] .rotatePause {
+  display: none;
+}
+#skinViewerRotate[paused] .rotatePlay {
+  display: block;
+}
+
+/* Colour picker (skinpreview.js, pickColor): the skin seen flat from the
+   front over the 3D view, 9 screen pixels per skin pixel (144x288). */
+#skinPicker {
+  display: none;
+  position: absolute;
+  top: 12px;
+  left: 48px;
+  width: 144px;
+  height: 288px;
+}
+#skinPicker[active] {
+  display: block;
+}
+#skinPickerCanvas {
+  width: 144px;
+  height: 288px;
+  image-rendering: pixelated;
+  cursor: crosshair;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.55));
+}
+#skinPickerHover {
+  display: none;
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid #ffffff;
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.8),
+    0 0 8px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+.skinPickerSwatch {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 3px;
+}
+.skinPickerCancel {
+  margin-left: 8px;
+  padding: 0;
+  background: none;
+  border: none;
+  color: #38c8c1;
+  font: inherit;
+  cursor: pointer;
+}
+.skinPickerCancel:hover {
+  text-decoration: underline;
 }
 
 #skinViewerBack {
@@ -4724,6 +4761,29 @@ input:checked + .toggleSwitchSlider:before {
   gap: 8px;
   font-size: 12px;
 }
+#marineSkinTonePick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+#marineSkinTonePick svg {
+  width: 12px;
+  height: 12px;
+  fill: #ffffff;
+}
+
+/* Help line under the Marine studio (link to the Discord skin channel). */
+#marineHelp {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+}
+#marineHelp a {
+  color: #38c8c1;
+}
+
 #marineSkinTone {
   width: 32px;
   height: 22px;
