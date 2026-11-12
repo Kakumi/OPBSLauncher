@@ -17,13 +17,16 @@ const {
   downloadFile,
 } = require("helios-core/dl");
 const {
-  validateSelectedJvm,
   ensureJavaDirIsRoot,
   javaExecFromRoot,
-  discoverBestJvmInstallation,
   latestOpenJDK,
   extractJdk,
 } = require("helios-core/java");
+// Same as helios-core's, plus x86_64-only Java on macOS (see javaselect.js).
+const {
+  validateSelectedJvm,
+  discoverBestJvmInstallation,
+} = require("./assets/js/javaselect");
 const { status } = require("minecraft-server-util");
 
 // Internal Requirements
