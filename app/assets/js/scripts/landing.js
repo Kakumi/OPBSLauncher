@@ -682,7 +682,13 @@ async function dlAsync(login = true) {
 
   await downloadCustomMainMenuFiles();
 
-  await deleteCustomMods();
+  if (!(await deleteCustomMods())) {
+    showLaunchFailure(
+      Lang.queryJS("landing.dlAsync.modsCleanupFailedTitle"),
+      Lang.queryJS("landing.dlAsync.modsCleanupFailedMessage"),
+    );
+    return;
+  }
 
   // Remove download bar.
   remote.getCurrentWindow().setProgressBar(-1);
@@ -1733,38 +1739,57 @@ async function downloadCustomMainMenuFiles() {
   }
 }
 
+/**
+ * Anti-cheat: on every profile but the ones allowing custom mods ("customMods":
+ * true in distribution.json, i.e. Staff), the instance "mods" folder is
+ * emptied before each launch, sub-folders included (Forge also loads
+ * mods/1.12.2/). The profile's mods never live there: they come from the
+ * common store through --modListFile, checked file by file before launch.
+ *
+ * @returns {Promise<boolean>} False if something could not be removed (the
+ * game must not be launched then).
+ */
 async function deleteCustomMods() {
-  const user = ConfigManager.getSelectedAccount();
   const serv = (await DistroAPI.getDistribution()).getServerById(
     ConfigManager.getSelectedServer(),
   );
-
-  if (serv.rawServer.customMods == false) {
-    const modsFolder = path.join(
-      ConfigManager.getInstanceDirectory(),
-      serv.rawServer.id,
-      "mods",
-    );
-
-    //delete all files in the mods folder
-    fs.readdir(modsFolder, (err, files) => {
-      if (err) {
-        loggerUICore.error("Error reading mods folder", err);
-        return;
-      }
-      files.forEach((file) => {
-        const filePath = path.join(modsFolder, file);
-        fs.unlink(filePath, (err) => {
-          if (err) {
-            loggerUICore.error("Error deleting file", err);
-          }
-        });
-      });
-    });
+  if (serv.rawServer.customMods === true) {
+    return true;
   }
+
+  const fsp = require("fs").promises;
+  const modsFolder = path.join(
+    ConfigManager.getInstanceDirectory(),
+    serv.rawServer.id,
+    "mods",
+  );
+  let entries = [];
+  try {
+    entries = await fsp.readdir(modsFolder);
+  } catch (err) {
+    // No mods folder: nothing to remove.
+    return err.code === "ENOENT";
+  }
+
+  let ok = true;
+  for (const entry of entries) {
+    try {
+      await fsp.rm(path.join(modsFolder, entry), {
+        recursive: true,
+        force: true,
+      });
+      loggerUICore.info(`Removed "${entry}" from the mods folder.`);
+    } catch (err) {
+      loggerUICore.error(`Cannot remove "${entry}" from the mods folder`, err);
+      ok = false;
+    }
+  }
+  return ok;
 }
 
 let fileHashes = {};
+// Unofficial hash seen once, waiting for the next check to be confirmed.
+let pendingHashes = {};
 
 function hashFile(filePath) {
   return new Promise((resolve, reject) => {
@@ -1806,12 +1831,20 @@ async function analyzeFolderChanges() {
           (artifactFromServer.length == 0 ||
             artifactFromServer[0].artifact.MD5 !== newHash)
         ) {
+          // A pack being downloaded (launcher update) changes every few
+          // seconds: only a change that stays the same on the next check
+          // (10 s later) is reported. Before, every pack update raised alerts.
+          if (pendingHashes[file] !== newHash) {
+            pendingHashes[file] = newHash;
+            continue;
+          }
           await callSecurityWebhook(
             "Modification d'un fichier",
             `Le fichier ${file} a été modifié dans le dossier de ressources du serveur ${serv.rawServer.name}.`,
           );
         }
 
+        delete pendingHashes[file];
         fileHashes[file] = newHash;
       }
     }
@@ -1841,35 +1874,35 @@ async function getFolderToWatch(serv) {
 // Run every 10 seconds
 setInterval(analyzeFolderChanges, 10000);
 
+/**
+ * Send a resource pack watcher alert to the staff (Discord #check-pack-log),
+ * through the website ("opbs-launcher" plugin): the Discord webhook stays
+ * secret there, and the player is checked with their Minecraft session.
+ *
+ * @param {string} title
+ * @param {string} message
+ */
 async function callSecurityWebhook(title, message) {
   try {
-    const webhookUrl =
-      "https://discord.com/api/webhooks/1360368753854120156/91lDIFKriPO93EaitlUMdfTXn5RuM3r_5J3QW-W22AhX5NFNmrJpNxz2WRZXAWeM8hEe";
     const user = ConfigManager.getSelectedAccount();
-    const embed = {
-      title: title,
-      description: message,
-      color: 0xff0000,
-      timestamp: new Date().toISOString(),
-      fields: [
-        {
-          name: "Utilisateur",
-          value: user?.displayName || "N/A",
-          inline: true,
+    if (user?.accessToken == null) {
+      return;
+    }
+    const res = await fetch(
+      "https://opbluesea.fr/api/opbs-launcher/security-alert",
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${user.accessToken}`,
         },
-        {
-          name: "UUID",
-          value: user?.uuid || "N/A",
-          inline: true,
-        },
-      ],
-    };
-
-    await fetch(webhookUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ embeds: [embed] }),
-    });
+        body: JSON.stringify({ title, message }),
+      },
+    );
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}`);
+    }
   } catch (ex) {
     LoggerUtil.getLogger("SecurityWebhook").error(
       `Can't call security webhook, ${ex.message}`,

@@ -451,7 +451,7 @@ class ProcessBuilder {
     }
     args.push("-Xmx" + ConfigManager.getMaxRAM(this.server.rawServer.id));
     args.push("-Xms" + ConfigManager.getMinRAM(this.server.rawServer.id));
-    args = args.concat(ConfigManager.getJVMOptions(this.server.rawServer.id));
+    args = args.concat(this._allowedJVMOptions());
     args.push("-Djava.library.path=" + tempNativePath);
 
     // Main Java Class
@@ -461,6 +461,37 @@ class ProcessBuilder {
     args = args.concat(this._resolveForgeArgs());
 
     return args;
+  }
+
+  /**
+   * Anti-cheat: the JVM options of the Java settings, without the ones that
+   * load code into the game (Java agents, another classpath, extension or
+   * boot jars, extra coremods...), except on profiles allowing custom mods
+   * (Staff, "customMods": true). Removed options are logged.
+   *
+   * @returns {Array.<string>}
+   */
+  _allowedJVMOptions() {
+    const options = ConfigManager.getJVMOptions(this.server.rawServer.id) || [];
+    if (this.server.rawServer.customMods === true) {
+      return options;
+    }
+    const BLOCKED =
+      /^(-javaagent|-agentlib|-agentpath|-Xbootclasspath|-Djava\.class\.path|-Djava\.system\.class\.loader|-Djava\.ext\.dirs|-Djava\.endorsed\.dirs|-Dfml\.coreMods\.load|-Dfml\.modListFile|-Dmixin\.)/i;
+    const WITH_VALUE = /^(-cp|-classpath|--class-path)$/i;
+    const kept = [];
+    for (let i = 0; i < options.length; i++) {
+      const opt = String(options[i]).trim();
+      if (WITH_VALUE.test(opt)) {
+        logger.warn(`JVM option removed (anti-cheat): ${opt} ${options[i + 1] ?? ""}`);
+        i++; // and its value
+      } else if (BLOCKED.test(opt) || /^--class-path=/i.test(opt)) {
+        logger.warn(`JVM option removed (anti-cheat): ${opt}`);
+      } else {
+        kept.push(options[i]);
+      }
+    }
+    return kept;
   }
 
   /**
@@ -507,7 +538,7 @@ class ProcessBuilder {
     }
     args.push("-Xmx" + ConfigManager.getMaxRAM(this.server.rawServer.id));
     args.push("-Xms" + ConfigManager.getMinRAM(this.server.rawServer.id));
-    args = args.concat(ConfigManager.getJVMOptions(this.server.rawServer.id));
+    args = args.concat(this._allowedJVMOptions());
 
     // Main Java Class
     args.push(this.modManifest.mainClass);

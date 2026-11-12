@@ -1155,8 +1155,12 @@ async function bindDropinModFileSystemButton() {
     ConfigManager.getSelectedServer()
   );
 
-  if (serv.rawServer.customMods == false) {
+  // Only profiles that explicitly allow custom mods (Staff): the others are
+  // emptied before each launch anyway (landing.js, deleteCustomMods).
+  if (serv.rawServer.customMods !== true) {
     fsBtn.innerHTML = Lang.queryJS("settings.dropinMods.addModsNotAllowed");
+    fsBtn.onclick = null;
+    fsBtn.ondrop = null;
     return;
   }
 
